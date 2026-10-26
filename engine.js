@@ -1,3 +1,4 @@
+
 /* Reconciliation engine v2 — pure logic, no DOM. Works in browsers and Node. */
 (function (root) {
   'use strict';
@@ -251,7 +252,7 @@
         get: r => [first.get(r), last.get(r)].filter(x => !isBlank(x)).map(String).join(' ')
       });
     }
-    const F = { name: file.name, rows: file.rows, cols, colsById: Object.fromEntries(cols.map(c => [c.id, c])) };
+    const F = { name: file.name, fileNames: file.fileNames || [file.name], rows: file.rows, cols, colsById: Object.fromEntries(cols.map(c => [c.id, c])) };
     cols.forEach(c => { c.typeHist = typeHist(F.rows.map(r => c.get(r))); });
     return F;
   }
@@ -483,6 +484,7 @@
 
   // ================= full analysis =================
   // mapping: [{ aId, bId, conf?, ns?, vs?, ambiguous?, alternative?, stage?, reason? }] ; key: { aId, bId }
+  function rowOrigin(row) { return { fileName: row && row.__fileName || 'Unknown file', sheetName: row && row.__sheetName || 'Unknown sheet', rowNumber: row && row.__rowNumber || null }; }
   function analyze(A, B, key, mapping) {
     const keyA = A.colsById[key.aId], keyB = B.colsById[key.bId];
     const join = joinOn(A, B, keyA, keyB);
@@ -499,7 +501,7 @@
         const vd = m.b.get(B.rows[p.ib]);
         return { status: compareValues(vs, vd, m.kind), src: vs, db: vd };
       });
-      return { key: p.key, ia: p.ia, ib: p.ib, cells };
+      return { key: p.key, ia: p.ia, ib: p.ib, sourceOrigin: rowOrigin(A.rows[p.ia]), comparisonOrigin: rowOrigin(B.rows[p.ib]), cells };
     });
 
     const mappingStats = maps.map((m, mi) => {
@@ -524,7 +526,7 @@
         else if (c.status === 'mismatch') issue = isPlaceholder(c.db) ? 'Placeholder in database' : 'Value conflict';
         else if (c.status === 'blank_db') issue = 'Blank in database';
         else issue = 'Blank in source';
-        issues.push({ key: r.key, column: maps[mi].bLabel, sourceColumn: maps[mi].aLabel, src: c.src, db: c.db, issue, mi });
+        issues.push({ key: r.key, column: maps[mi].bLabel, sourceColumn: maps[mi].aLabel, src: c.src, db: c.db, issue, mi, sourceOrigin: r.sourceOrigin, comparisonOrigin: r.comparisonOrigin });
       });
     });
 
@@ -689,3 +691,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Reconcile = api;
 })(typeof self !== 'undefined' ? self : this);
+
