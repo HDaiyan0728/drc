@@ -311,10 +311,37 @@
     ['postalcode', 'zip', 'zipcode', 'postcode'],
     ['isactive', 'active', 'status'],
     ['region', 'regionname'],
-    ['manager', 'managername']
+    ['manager', 'managername', 'reportingmanager', 'supervisor', 'supervisorname', 'line manager'],
+    // Common business/data-warehouse field names and abbreviations
+    ['fuel', 'fueltype', 'fuelname', 'fuelcategory', 'energytype', 'energysource', 'powersource', 'powertrain', 'propulsiontype', 'fuelused', 'vehiclefuel'],
+    ['fuelcode', 'fuelid', 'fuelkey'],
+    ['vehicle', 'vehiclename', 'vehiclemodel', 'car'],
+    ['registrationnumber', 'registrationno', 'regno', 'vehicle-registration', 'licenceplate', 'licenseplate', 'platenumber'],
+    ['vin', 'vehicleidentificationnumber', 'chassisnumber', 'chassisno'],
+    ['make', 'manufacturer', 'vehiclemake', 'brand'],
+    ['model', 'vehiclemodelname'],
+    ['department', 'departmentname', 'dept', 'deptname', 'businessunit', 'orgunit'],
+    ['employeeid', 'employeeidentifier', 'personnelnumber', 'personnelno', 'staffnumber', 'staffno', 'empid', 'empcode'],
+    ['dateofbirth', 'birthdate', 'dob'],
+    ['startdate', 'datefrom', 'effectivedate', 'validfrom', 'commencementdate'],
+    ['enddate', 'dateto', 'expirydate', 'expirationdate', 'validto'],
+    ['salary', 'pay', 'basepay', 'basicpay', 'monthlysalary'],
+    ['currency', 'currencycode', 'curr'],
+    ['amount', 'totalamount', 'valueamount', 'cost', 'price'],
+    ['address', 'streetaddress', 'addressline', 'mailingaddress'],
+    ['city', 'town', 'municipality'],
+    ['state', 'province', 'territory'],
+    ['employmentstatus', 'employeestatus', 'workstatus', 'staffstatus'],
+    ['hiredate', 'datehired', 'joiningdate', 'datejoined'],
+    ['terminationdate', 'separationdate', 'leavingdate', 'lastworkingday'],
+    ['quantity', 'qty', 'count', 'units'],
+    ['description', 'details', 'remarks', 'comments', 'notes'],
+    ['category', 'classification', 'class'],
+    ['accountnumber', 'accountno', 'acctnumber', 'acctno'],
+    ['taxid', 'taxnumber', 'tin', 'vatnumber', 'vatno']
   ];
   const groupOf = {};
-  SYN_GROUPS.forEach((g, i) => g.forEach(t => { groupOf[t] = i; }));
+  SYN_GROUPS.forEach((g, i) => g.forEach(t => { groupOf[hkey(t)] = i; }));
   // Words too generic to count as evidence of a match on their own
   const GENERIC = new Set(['name', 'number', 'no', 'code', 'id', 'type', 'date', 'status', 'of', 'the', 'and', 'column']);
 
@@ -331,16 +358,47 @@
     return (2 * inter) / ((a.length - 1) + (b.length - 1));
   }
 
-  // Stage 1 — name score: exact, synonym, shared words (partial/half), then spelling similarity
+  // Semantic header matching: normalized labels, known domain aliases, token concepts,
+  // then character similarity. This is a lightweight local semantic layer (no API/model download).
+  function headerTokens(label) {
+    return String(label == null ? '' : label)
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+      .toLowerCase().split(/[^a-z0-9]+/).filter(t => t && !GENERIC.has(t));
+  }
+
+  const CONCEPT_OF = Object.create(null);
+  SYN_GROUPS.forEach((g, i) => g.forEach(t => { CONCEPT_OF[hkey(t)] = i; }));
+  function conceptTokens(label) {
+    const whole = hkey(label);
+    // Prefer a known meaning for the full phrase (e.g. "Fuel Type" and "Energy Source").
+    if (CONCEPT_OF[whole] !== undefined) return ['concept:' + CONCEPT_OF[whole]];
+    return headerTokens(label).map(t => CONCEPT_OF[hkey(t)] === undefined ? t : 'concept:' + CONCEPT_OF[hkey(t)]);
+  }
+
+  // Stage 1 — name score: exact, domain synonym, semantic token overlap, spelling.
   function nameScore(labelA, labelB) {
     const ka = hkey(labelA), kb = hkey(labelB);
     if (ka === kb) return { score: 1, how: 'exact name' };
     const ga = groupOf[ka], gb = groupOf[kb];
-    if (ga !== undefined && ga === gb) return { score: 0.9, how: 'synonym' };
-    const ta = new Set(cleanHeader(labelA).toLowerCase().split(/[^a-z0-9]+/).filter(t => t && !GENERIC.has(t)));
-    const tb = new Set(cleanHeader(labelB).toLowerCase().split(/[^a-z0-9]+/).filter(t => t && !GENERIC.has(t)));
-    const shared = [...ta].filter(t => tb.has(t));
-    if (shared.length && (shared.length === ta.size || shared.length === tb.size)) return { score: 0.7, how: 'partial (words)' };
+    if (ga !== undefined && ga === gb) return { score: 0.94, how: 'domain synonym' };
+
+    const ta = [...new Set(conceptTokens(labelA))];
+    const tb = [...new Set(conceptTokens(labelB))];
+    if (ta.length && tb.length) {
+      const overlap = ta.filter(t => tb.includes(t)).length;
+      const diceScore = (2 * overlap) / (ta.length + tb.length);
+      if (overlap && ta.every(t => tb.includes(t)) && tb.every(t => ta.includes(t)))
+        return { score: 0.88, how: 'same semantic terms' };
+      if (overlap && (ta.every(t => tb.includes(t)) || tb.every(t => ta.includes(t))))
+        return { score: 0.78, how: 'semantic term match' };
+      if (diceScore >= 0.5) return { score: Math.min(0.76, 0.52 + diceScore * 0.24), how: 'related header terms' };
+    }
+
+    const rawA = new Set(headerTokens(labelA));
+    const rawB = new Set(headerTokens(labelB));
+    const shared = [...rawA].filter(t => rawB.has(t));
+    if (shared.length && (shared.length === rawA.size || shared.length === rawB.size)) return { score: 0.7, how: 'partial (words)' };
     if (shared.length) return { score: 0.5, how: 'half (shared word)' };
     return { score: dice(ka, kb), how: 'similar spelling' };
   }
@@ -422,7 +480,7 @@
         get: r => [first.get(r), last.get(r)].filter(x => !isBlank(x)).map(String).join(' ')
       });
     }
-    const F = { name: file.name, rows: file.rows, cols, colsById: Object.fromEntries(cols.map(c => [c.id, c])) };
+    const F = { name: file.name, fileNames: file.fileNames || [file.name], rows: file.rows, cols, colsById: Object.fromEntries(cols.map(c => [c.id, c])) };
     cols.forEach(c => { c.typeHist = typeHist(F.rows.map(r => c.get(r))); });
     return F;
   }
@@ -560,12 +618,14 @@
       if (x >= 0.97) eq++;
     }
     base.comp = cnt;
-    base.vs = cnt >= 10 ? sum / cnt : null;
+    base.vs = cnt >= 3 ? sum / cnt : null;
+    base.smallSample = cnt > 0 && cnt < 10;
     base.eqShare = cnt ? eq / cnt : null;
-    let conf = base.vs === null ? 0.5 * nm.score : 0.35 * nm.score + 0.65 * base.vs;
+    let conf = base.vs === null ? 0.5 * nm.score : 0.30 * nm.score + 0.70 * base.vs;
+    if (base.smallSample) conf *= 0.88; // small samples are useful, but less certain
     if (ts < 0.7) conf *= 0.85;
     if (a.virtual || b.virtual) conf -= 0.05;   // a real column beats a derived one on a tie
-    return { ...base, conf, reason: nm.how + (base.vs === null ? '' : ` · ${Math.round(base.vs * 100)}% of values similar`), stage: 'scored' };
+    return { ...base, conf, reason: nm.how + (base.vs === null ? '' : ` · ${Math.round(base.vs * 100)}% of values similar${base.smallSample ? ' (small sample)' : ''}`), stage: 'scored' };
   }
 
   // Returns { auto, candidates, aliases }
@@ -654,6 +714,7 @@
 
   // ================= full analysis =================
   // mapping: [{ aId, bId, conf?, ns?, vs?, ambiguous?, alternative?, stage?, reason? }] ; key: { aId, bId }
+  function rowOrigin(row) { return { fileName: row && row.__fileName || 'Unknown file', sheetName: row && row.__sheetName || 'Unknown sheet', rowNumber: row && row.__rowNumber || null }; }
   function analyze(A, B, key, mapping) {
     const keyA = A.colsById[key.aId], keyB = B.colsById[key.bId];
     const join = joinOn(A, B, keyA, keyB);
@@ -670,7 +731,7 @@
         const vd = m.b.get(B.rows[p.ib]);
         return { status: compareValues(vs, vd, m.kind), src: vs, db: vd };
       });
-      return { key: p.key, ia: p.ia, ib: p.ib, cells };
+      return { key: p.key, ia: p.ia, ib: p.ib, sourceOrigin: rowOrigin(A.rows[p.ia]), comparisonOrigin: rowOrigin(B.rows[p.ib]), cells };
     });
 
     const mappingStats = maps.map((m, mi) => {
@@ -695,7 +756,7 @@
         else if (c.status === 'mismatch') issue = isPlaceholder(c.db) ? 'Placeholder in database' : 'Value conflict';
         else if (c.status === 'blank_db') issue = 'Blank in database';
         else issue = 'Blank in source';
-        issues.push({ key: r.key, column: maps[mi].bLabel, sourceColumn: maps[mi].aLabel, src: c.src, db: c.db, issue, mi });
+        issues.push({ key: r.key, column: maps[mi].bLabel, sourceColumn: maps[mi].aLabel, src: c.src, db: c.db, issue, mi, sourceOrigin: r.sourceOrigin, comparisonOrigin: r.comparisonOrigin });
       });
     });
 
