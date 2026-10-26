@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Reconciliation Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#4f46e5;--brand2:#7c3aed;
+    --ok:#10b981;--info:#3b82f6;--warn:#f59e0b;--bad:#ef4444;--violet:#a78bfa}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  .hero{background:linear-gradient(135deg,#1e1b4b 0%,#4f46e5 50%,#7c3aed 100%);color:#fff;padding:34px 32px 70px;position:relative;overflow:hidden}
+  .hero:after{content:"";position:absolute;right:-80px;top:-80px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.08)}
+  .hero h1{margin:0;font-size:28px;font-weight:750;letter-spacing:-.01em}
+  .hero p{margin:6px 0 0;opacity:.88;max-width:720px}
+  .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  main{max-width:1320px;margin:-44px auto 48px;padding:0 20px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.07);padding:20px;margin-bottom:18px}
+  .card h3{margin:0 0 12px;font-size:16px}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+  .drop{border:2px dashed #c7d2fe;border-radius:14px;padding:30px 20px;text-align:center;cursor:pointer;background:#eef2ff;transition:.18s}
+  .drop:hover,.drop.over{border-color:var(--brand);background:#e0e7ff}
+  .drop b{display:block;font-size:15px;margin-bottom:4px}
+  .loaded .name{font-weight:650;font-size:15px;word-break:break-all}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{background:#f1f5f9;color:#334155;border-radius:7px;padding:3px 8px;font-size:12px}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px}
+  .btn:hover{border-color:#c7d2fe}
+  .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border:0;padding:12px 22px;font-size:14px;box-shadow:0 6px 18px rgba(79,70,229,.3)}
+  .btn.primary:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+  .btn.ghost{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)}
+  .bar-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+  .tab{padding:9px 15px;border-radius:10px;background:#fff;border:1px solid var(--line);cursor:pointer;font-weight:600;color:var(--muted)}
+  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  @media (max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 20px rgba(15,23,42,.06);border-top:4px solid var(--brand)}
+  .kpi.ok{border-color:var(--ok)} .kpi.warn{border-color:var(--warn)} .kpi.bad{border-color:var(--bad)} .kpi.info{border-color:var(--info)}
+  .kpi .v{font-size:26px;font-weight:750;margin-top:4px}
+  .kpi .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:650}
+  .kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+  .chart-box{position:relative;height:320px}
+  .insight{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:12px;margin:8px 0;background:#f8fafc}
+  .insight .dot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none}
+  .d-bad{background:var(--bad)} .d-warn{background:var(--warn)} .d-info{background:var(--info)}
+  .table-wrap{max-height:540px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+  th{position:sticky;top:0;background:#f8fafc;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;z-index:1;white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:top;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  td.issue-cell{max-width:none}
+  tr:hover td{background:#fbfbff}
+  .chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:650;white-space:nowrap}
+  .c-exact{background:#dcfce7;color:#166534} .c-format{background:#dbeafe;color:#1e40af}
+  .c-mismatch{background:#fee2e2;color:#991b1b} .c-blank{background:#fef3c7;color:#92400e}
+  .c-placeholder{background:#fce7f3;color:#9d174d} .c-encoding{background:#ffedd5;color:#9a3412} .c-auto{background:#dcfce7;color:#166534}
+  .c-review{background:#fef3c7;color:#92400e} .c-low{background:#fee2e2;color:#991b1b}
+  .c-manual{background:#ede9fe;color:#5b21b6} .c-none{background:#f1f5f9;color:#64748b}
+  .cell-exact{background:#f0fdf4} .cell-format{background:#eff6ff} .cell-mismatch{background:#fef2f2}
+  .cell-blank_db,.cell-blank_source{background:#fffbeb} .cell-encoding{background:#fff7ed}
+  .cell small{color:#94a3b8;margin:0 4px}
+  .bar{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;min-width:90px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#818cf8,#34d399)}
+  select,input[type=search],input[type=text]{padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:#fff;color:var(--ink);min-width:160px}
+  select.wide{min-width:280px;max-width:340px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .toolbar .grow{flex:1}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#3730a3;padding:6px 11px;border-radius:999px;font-weight:600;font-size:12px}
+  .empty{padding:30px;text-align:center;color:var(--muted)}
+  .sheet-list li{margin:8px 0}
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:.25s;z-index:99;max-width:380px}
+  .toast.show{opacity:1;transform:none}
+  .confbar{display:flex;align-items:center;gap:8px}
+  .confbar span{font-size:12px;color:var(--muted);width:38px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-row">
+    <div>
+      <h1>Data Reconciliation Studio</h1>
+      <p>Upload two Excel or CSV files. The studio finds the matching key, maps the columns, flags missing records and value conflicts, and exports a full report.</p>
+    </div>
+    <div id="heroActions"></div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ STEP 1: UPLOAD ============ -->
+  <section id="upload">
+    <div class="grid2">
+      <div class="card slot" data-slot="A">
+        <h3>① Source file <span class="muted small">(e.g. client extract)</span></h3>
+        <div class="drop" id="dropA">
+          <b>Drop Excel / CSV here</b>
+          <span class="muted small">or click to browse</span>
+          <input type="file" id="fileA" accept=".xlsx,.xlsm,.xls,.csv" hidden>
+        </div>
+        <div class="loaded" id="loadedA" hidden></div>
+      </div>
+      <div class="card slot" data-slot="B">
+        <h3>② Compare file <span class="muted small">(e.g. user database)</span></h3>
+        <div class="drop" id="dropB">
+          <b>Drop Excel / CSV here</b>
+          <span class="muted small">or click to browse</span>
+          <input type="file" id="fileB" accept=".xlsx,.xlsm,.xls,.csv" hidden>
+        </div>
+        <div class="loaded" id="loadedB" hidden></div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+      <div class="muted">Matching is done in your browser. Your files are never uploaded anywhere.</div>
+      <button class="btn primary" id="analyzeBtn" disabled>Analyze &amp; map columns →</button>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="dash" hidden>
+    <div class="toolbar">
+      <div class="pill" id="pairPill"></div>
+      <div class="grow"></div>
+      <button class="btn" id="changeFiles">← Change files</button>
+    </div>
+    <nav class="tabs" id="tabs">
+      <div class="tab active" data-tab="overview">Overview</div>
+      <div class="tab" data-tab="mapping">Column mapping</div>
+      <div class="tab" data-tab="missing">Missing &amp; extra</div>
+      <div class="tab" data-tab="mismatch">Mismatches</div>
+      <div class="tab" data-tab="records">Record comparison</div>
+      <div class="tab" data-tab="quality">Data quality</div>
+      <div class="tab" data-tab="download">Download report</div>
+    </nav>
+    <div id="panel"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* Reconciliation engine v2 — pure logic, no DOM. Works in browsers and Node. */
+(function (root) {
+  'use strict';
+
+  // ================= value helpers =================
+  const BLANK_TOKENS = new Set(['', 'null', 'nan', 'none', 'n/a', 'nat', 'undefined', '#n/a']);
+  const PLACEHOLDER_TOKENS = new Set(['other', 'unknown', 'not specified', 'default', 'tbd', 'n/a', 'none', '-', 'select']);
+
+  function isBlank(v) {
+    if (v === null || v === undefined) return true;
+    if (typeof v === 'number') return !isFinite(v);
+    if (v instanceof Date) return isNaN(v.getTime());
+    return BLANK_TOKENS.has(String(v).trim().toLowerCase());
+  }
+
+  function normText(v) {
+    if (isBlank(v)) return '';
+    if (v instanceof Date) return v.toISOString().slice(0, 19);
+    return String(v).replace(/\u00a0/g, ' ').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function normPhone(v) {
+    if (isBlank(v)) return '';
+    const digits = String(typeof v === 'number' ? Math.round(v) : v).replace(/\D/g, '');
+    return digits.length >= 9 ? digits.slice(-9) : digits;
+  }
+
+  function normName(v) {
+    let s = normText(v);
+    if (!s) return '';
+    s = s.replace(/\b(md|mr|mrs|ms|miss|dr|prof)\b\.?/g, ' ');
+    return s.replace(/[^\p{L}\p{N}]+/gu, '');
+  }
+
+  // Punctuation- and spacing-insensitive token list, used for value similarity
+  function tokensOf(v) {
+    if (isBlank(v)) return [];
+    return normText(v).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  }
+
+  function isPlaceholder(v) {
+    return PLACEHOLDER_TOKENS.has(normText(v));
+  }
+
+  // Garbled text: UTF-8 read as Windows-1252 ("BrÃ©gard", "Officer â€“ Admin").
+  // Repaired only when the result is valid UTF-8, so correct text like "Brégard" is untouched.
+  const CP1252_HIGH = [0x20AC, 0x81, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x8D, 0x017D, 0x8F,
+    0x90, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x9D, 0x017E, 0x0178];
+  const CP1252_REV = new Map(CP1252_HIGH.map((cp, i) => [cp, 0x80 + i]));
+  function unmojibake(v) {
+    if (typeof v !== 'string' || !/[\u0080-\u00FF\u20AC\u201A-\u2122]/.test(v)) return null;
+    const bytes = [];
+    for (const ch of v) {
+      const cp = ch.codePointAt(0);
+      if (cp < 256) bytes.push(cp);
+      else if (CP1252_REV.has(cp)) bytes.push(CP1252_REV.get(cp));
+      else return null;
+    }
+    try {
+      const out = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes));
+      return out !== v ? out : null;
+    } catch (e) { return null; }
+  }
+  function repaired(v) {
+    const fixed = unmojibake(v);
+    return fixed === null ? v : fixed;
+  }
+  function keyNorm(v) { return normText(repaired(v)); }
+
+  function isTruthy(v) {
+    if (v === true || v === 1) return true;
+    const s = normText(v);
+    return s === 'true' || s === '1' || s === 'yes';
+  }
+
+  // ================= value TYPE (not value) =================
+  // Type of one cell. Used for the type gate only, never for equality.
+  function typeOf(v) {
+    if (isBlank(v)) return 'blank';
+    if (v instanceof Date) return 'datetime';
+    if (typeof v === 'number') {
+      if (Number.isInteger(v) && String(Math.abs(v)).length >= 9) return 'phone';
+      return Number.isInteger(v) ? 'integer' : 'decimal';
+    }
+    const s = String(v).trim();
+    if (/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(s)) return 'email';
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return 'guid';
+    if (/^[+]?[\d\s\-()]+$/.test(s) && /\d/.test(s)) {
+      const digits = s.replace(/\D/g, '');
+      if (digits.length >= 9) return 'phone';
+      return /^[+-]?\d+$/.test(s) ? 'integer' : 'text';
+    }
+    if (/^[+-]?\d+$/.test(s)) return 'integer';
+    if (/^[+-]?\d*\.\d+$/.test(s)) return 'decimal';
+    if (/^\d{4}-\d{2}-\d{2}/.test(s) || /^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(s)) return 'date';
+    if (/^[A-Za-z0-9_-]+$/.test(s)) return 'code';
+    return 'text';
+  }
+  // Compatibility groups: 'code' can match 'text', integers match decimals, etc.
+  const TYPE_GROUP = { text: 'text', code: 'text', integer: 'num', decimal: 'num', phone: 'phone', date: 'date', datetime: 'date', email: 'email', guid: 'guid' };
+  function typeHist(values) {
+    const h = {};
+    let n = 0;
+    values.forEach(v => {
+      const t = typeOf(v);
+      if (t === 'blank') return;
+      const g = TYPE_GROUP[t] || 'text';
+      h[g] = (h[g] || 0) + 1; n++;
+    });
+    Object.keys(h).forEach(k => { h[k] /= n; });
+    return { h, n };
+  }
+  // Histogram intersection, 0..1
+  function typeSim(a, b) {
+    if (!a.n || !b.n) return 0;
+    let s = 0;
+    Object.keys(a.h).forEach(k => { if (b.h[k]) s += Math.min(a.h[k], b.h[k]); });
+    return s;
+  }
+
+  // ================= header helpers =================
+  function cleanHeader(h) {
+    return String(h === null || h === undefined ? '' : h).replace(/\s+/g, ' ').trim();
+  }
+  function hkey(h) {
+    return cleanHeader(h).toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+  // Synonym groups: header names that mean the same thing across two systems.
+  const SYN_GROUPS = [
+    ['email', 'primaryemail', 'username', 'emailaddress', 'useremail', 'workemail', 'mail'],
+    ['gender', 'persongender', 'sex'],
+    ['country', 'countryname'],
+    ['phone', 'phonenumber', 'mobile', 'mobilenumber', 'mobileno', 'telephone', 'contactnumber', 'cell'],
+    ['designation', 'assignmentname', 'jobtitle', 'position', 'job', 'title'],
+    ['office', 'officename', 'location', 'locationname', 'site', 'branch'],
+    ['fullname', 'name', 'displayname', 'employeename'],
+    ['firstname', 'givenname', 'fname'],
+    ['lastname', 'surname', 'familyname', 'lname'],
+    ['personnumber', 'employeeid', 'empno', 'staffid'],
+    ['postalcode', 'zip', 'zipcode', 'postcode'],
+    ['isactive', 'active', 'status'],
+    ['region', 'regionname'],
+    ['manager', 'managername']
+  ];
+  const groupOf = {};
+  SYN_GROUPS.forEach((g, i) => g.forEach(t => { groupOf[t] = i; }));
+  // Words too generic to count as evidence of a match on their own
+  const GENERIC = new Set(['name', 'number', 'no', 'code', 'id', 'type', 'date', 'status', 'of', 'the', 'and', 'column']);
+
+  function dice(a, b) {
+    if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
+    const bigrams = s => {
+      const m = new Map();
+      for (let i = 0; i < s.length - 1; i++) { const g = s.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1); }
+      return m;
+    };
+    const A = bigrams(a), B = bigrams(b);
+    let inter = 0;
+    A.forEach((c, g) => { if (B.has(g)) inter += Math.min(c, B.get(g)); });
+    return (2 * inter) / ((a.length - 1) + (b.length - 1));
+  }
+
+  // Stage 1 — name score: exact, synonym, shared words (partial/half), then spelling similarity
+  function nameScore(labelA, labelB) {
+    const ka = hkey(labelA), kb = hkey(labelB);
+    if (ka === kb) return { score: 1, how: 'exact name' };
+    const ga = groupOf[ka], gb = groupOf[kb];
+    if (ga !== undefined && ga === gb) return { score: 0.9, how: 'synonym' };
+    const ta = new Set(cleanHeader(labelA).toLowerCase().split(/[^a-z0-9]+/).filter(t => t && !GENERIC.has(t)));
+    const tb = new Set(cleanHeader(labelB).toLowerCase().split(/[^a-z0-9]+/).filter(t => t && !GENERIC.has(t)));
+    const shared = [...ta].filter(t => tb.has(t));
+    if (shared.length && (shared.length === ta.size || shared.length === tb.size)) return { score: 0.7, how: 'partial (words)' };
+    if (shared.length) return { score: 0.5, how: 'half (shared word)' };
+    return { score: dice(ka, kb), how: 'similar spelling' };
+  }
+
+  function detectKind(h) {
+    const k = hkey(h);
+    if (/(phone|mobile|telephone|cell)/.test(k) && !/(e?mail)/.test(k)) return 'phone';
+    if (/e?mail/.test(k)) return 'email';
+    if (/^(full|first|last|given|family|sur|display|person|employee)?name$/.test(k)) return 'name';
+    if (/(date|created|edited|time)$/.test(k)) return 'date';
+    return 'text';
+  }
+  function pairKind(ka, kb) {
+    if (ka === 'phone' || kb === 'phone') return 'phone';
+    if (ka === 'email' || kb === 'email') return 'email';
+    if (ka === 'name' || kb === 'name') return 'name';
+    if (ka === 'date' && kb === 'date') return 'date';
+    return 'text';
+  }
+  function comparatorFor(kind) {
+    if (kind === 'phone') return normPhone;
+    if (kind === 'name') return normName;
+    return normText;
+  }
+
+  // Compare one source value with one compare value
+  // Returns: exact | format | encoding | mismatch | blank_source | blank_db | both_blank
+  function compareValues(vSrc, vDb, kind) {
+    const bs = isBlank(vSrc), bd = isBlank(vDb);
+    if (bs && bd) return 'both_blank';
+    if (bs) return 'blank_source';
+    if (bd) return 'blank_db';
+    if (normText(vSrc) === normText(vDb)) return 'exact';
+    const cmp = comparatorFor(kind);
+    const cs = cmp(vSrc), cd = cmp(vDb);
+    if (cs && cs === cd) return 'format';
+    const fs = unmojibake(vSrc), fd = unmojibake(vDb);
+    if ((fd !== null && normText(fd) === normText(vSrc)) || (fs !== null && normText(fs) === normText(vDb))) return 'encoding';
+    return 'mismatch';
+  }
+
+  // Similarity of two values, 0..1 (null = not comparable). Used for matching, punctuation-tolerant.
+  function rowSimilarity(va, vb) {
+    const ba = isBlank(va), bb = isBlank(vb);
+    if (ba && bb) return null;
+    if (ba || bb) return 0;
+    const ra = repaired(va), rb = repaired(vb);
+    if (normText(ra) === normText(rb)) return 1;
+    const na = normName(ra), nb = normName(rb);
+    if (na && na === nb) return 0.97;
+    const pa = normPhone(va), pb = normPhone(vb);
+    if (pa && pa === pb && pa.length >= 7) return 0.97;
+    const ta = new Set(tokensOf(ra)), tb = new Set(tokensOf(rb));
+    if (!ta.size || !tb.size) return 0;
+    let inter = 0; ta.forEach(t => { if (tb.has(t)) inter++; });
+    return inter / (ta.size + tb.size - inter);
+  }
+
+  // Deterministic PRNG so results are reproducible
+  function rng(seed) {
+    let s = seed >>> 0;
+    return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  }
+
+  // ================= file preparation =================
+  // Input: { name, headers: [string], rows: [object keyed by header] }
+  function prepareFile(file) {
+    const headers = file.headers.map(cleanHeader);
+    const cols = headers.map(h => ({
+      id: h, label: h, scoreKey: hkey(h), kind: detectKind(h), virtual: false,
+      get: r => r[h]
+    }));
+    const first = cols.find(c => c.scoreKey === 'firstname');
+    const last = cols.find(c => c.scoreKey === 'lastname');
+    if (first && last) {
+      cols.push({
+        id: '__first_last', label: first.label + ' + ' + last.label, scoreKey: 'fullname',
+        kind: 'name', virtual: true,
+        get: r => [first.get(r), last.get(r)].filter(x => !isBlank(x)).map(String).join(' ')
+      });
+    }
+    const F = { name: file.name, rows: file.rows, cols, colsById: Object.fromEntries(cols.map(c => [c.id, c])) };
+    cols.forEach(c => { c.typeHist = typeHist(F.rows.map(r => c.get(r))); });
+    return F;
+  }
+
+  function indexRows(rows, col) {
+    const m = new Map();
+    rows.forEach((r, i) => {
+      const k = keyNorm(col.get(r));
+      if (!k) return;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(i);
+    });
+    return m;
+  }
+
+  // How complete a row is; used to pick the best row among duplicate keys
+  function rowCompleteness(F, i) {
+    const r = F.rows[i];
+    let n = 0;
+    F.cols.forEach(c => { if (!c.virtual && !isBlank(c.get(r))) n++; });
+    const act = F.cols.find(c => !c.virtual && c.scoreKey === 'isactive');
+    if (act && isTruthy(act.get(r))) n += 1000;
+    return n;
+  }
+
+  // ================= key detection (all candidates) =================
+  function distinctSet(rows, col) {
+    const set = new Set();
+    let nonBlank = 0;
+    rows.forEach(r => {
+      const k = keyNorm(col.get(r));
+      if (k) { set.add(k); nonBlank++; }
+    });
+    return { set, n: set.size, ratio: nonBlank ? set.size / nonBlank : 0, nonBlank };
+  }
+
+  // Returns { best, alternatives }; each candidate: { aId, bId, overlap, score, auto }
+  function detectKeys(A, B) {
+    const cands = [];
+    for (const a of A.cols) {
+      if (a.virtual || a.kind === 'phone') continue;
+      for (const b of B.cols) {
+        if (b.virtual || b.kind === 'phone') continue;
+        const sa = distinctSet(A.rows, a), sb = distinctSet(B.rows, b);
+        if (sa.n === 0 || sb.n === 0) continue;
+        if (sa.ratio < 0.95 || sb.ratio < 0.95) continue; // a key must be (nearly) unique
+        let inter = 0;
+        sa.set.forEach(v => { if (sb.set.has(v)) inter++; });
+        const overlap = inter / Math.min(sa.n, sb.n);
+        if (overlap < 0.3) continue;
+        const score = overlap + 0.05 * nameScore(a.label, b.label).score;
+        cands.push({ aId: a.id, bId: b.id, overlap, score, auto: true });
+      }
+    }
+    cands.sort((x, y) => y.score - x.score);
+    return { best: cands[0] || null, alternatives: cands.slice(1) };
+  }
+  function detectKey(A, B) { return detectKeys(A, B).best; }
+
+  // ================= join =================
+  function joinOn(A, B, keyA, keyB) {
+    const idxB = indexRows(B.rows, keyB);
+    const idxA = indexRows(A.rows, keyA);
+    const pairs = [];
+    const sourceOnly = [];
+    const blankKeyA = [];
+    A.rows.forEach((r, i) => {
+      const k = keyNorm(keyA.get(r));
+      if (!k) { blankKeyA.push(i); return; }
+      const bi = idxB.get(k);
+      if (bi) {
+        const pick = bi.length === 1 ? bi[0] : bi.slice().sort((x, y) => rowCompleteness(B, y) - rowCompleteness(B, x))[0];
+        pairs.push({ key: k, ia: i, ib: pick });
+      } else sourceOnly.push(i);
+    });
+    const dbOnly = [];
+    const blankKeyB = [];
+    B.rows.forEach((r, i) => {
+      const k = keyNorm(keyB.get(r));
+      if (!k) { blankKeyB.push(i); return; }
+      if (!idxA.has(k)) dbOnly.push(i);
+    });
+    const dupB = [];
+    idxB.forEach((idx, k) => { if (idx.length > 1) dupB.push({ key: k, rows: idx }); });
+    const dupA = [];
+    idxA.forEach((idx, k) => { if (idx.length > 1) dupA.push({ key: k, rows: idx }); });
+    return { pairs, sourceOnly, dbOnly, blankKeyA, blankKeyB, dupA, dupB, idxB };
+  }
+
+  // ================= column matching (staged) =================
+  // Stage 1  name: exact, synonym, partial/half word match, spelling
+  // Stage 2  value-type gate (compares the TYPE of values, not the values)
+  // Stage 3  sampled check on matched records: first 10, then last 10 and random 10 if similar
+  // Stage 4  full value similarity on all matched records
+  function scorePair(A, B, a, b, pairs, known) {
+    const nm = nameScore(a.label, b.label);
+    const kind = pairKind(a.kind, b.kind);
+    const ts = typeSim(a.typeHist, b.typeHist);
+    const isKnown = known && known.some(k => k.bLabel === b.label && k.aLabel === a.label);
+    if (isKnown) return { aId: a.id, bId: b.id, conf: 1, ns: 1, vs: 1, ts, comp: pairs.length, kind, reason: 'known pair (you set this)', stage: 'known', ambiguous: false };
+
+    const base = { aId: a.id, bId: b.id, ns: nm.score, nameHow: nm.how, ts, kind, comp: 0, vs: null, sampleVs: null, stage: 'gate' };
+    if (ts < 0.4 && nm.score < 1) return { ...base, conf: 0, reason: 'value types differ', rejected: true };
+
+    const sim = i => { const p = pairs[i]; return rowSimilarity(a.get(A.rows[p.ia]), b.get(B.rows[p.ib])); };
+    const n = pairs.length;
+    const mean = arr => arr.length ? arr.reduce((t, x) => t + x, 0) / arr.length : null;
+    const valid = idxs => idxs.map(sim).filter(x => x !== null);
+
+    // Value TYPE agreement on sampled matched records (number vs text vs date ...), not the values themselves
+    const typeOK = i => { const p = pairs[i]; const va = a.get(A.rows[p.ia]), vb = b.get(B.rows[p.ib]);
+      const ta = typeOf(va), tb = typeOf(vb); if (ta === 'blank' || tb === 'blank') return null;
+      return TYPE_GROUP[ta] === TYPE_GROUP[tb] ? 1 : 0; };
+    const first = []; for (let i = 0; i < Math.min(10, n); i++) first.push(i);
+    const typesFirst = first.map(typeOK).filter(x => x !== null);
+    base.typeSampleShare = typesFirst.length ? mean(typesFirst) : null;
+    if (typesFirst.length >= 5 && base.typeSampleShare < 0.5 && nm.score < 1) return { ...base, conf: 0, reason: 'sampled value types differ', rejected: true };
+
+    const m1 = valid(first);
+    if (m1.length >= 5) {
+      if (mean(m1) < 0.15 && nm.score < 0.9) return { ...base, conf: 0, reason: 'first 10 sampled values are not similar', rejected: true };
+      if (n >= 20) {
+        const last = []; for (let i = n - 10; i < n; i++) last.push(i);
+        const rnd = rng(42), rand = [];
+        for (let i = 0; i < 10; i++) rand.push(Math.floor(rnd() * n));
+        base.sampleVs = mean(valid(first.concat(last, rand)));
+      } else base.sampleVs = mean(m1);
+    }
+
+    let sum = 0, cnt = 0, eq = 0;
+    for (let i = 0; i < n; i++) {
+      const x = sim(i);
+      if (x === null) continue;
+      sum += x; cnt++;
+      if (x >= 0.97) eq++;
+    }
+    base.comp = cnt;
+    base.vs = cnt >= 10 ? sum / cnt : null;
+    base.eqShare = cnt ? eq / cnt : null;
+    let conf = base.vs === null ? 0.5 * nm.score : 0.35 * nm.score + 0.65 * base.vs;
+    if (ts < 0.7) conf *= 0.85;
+    if (a.virtual || b.virtual) conf -= 0.05;   // a real column beats a derived one on a tie
+    return { ...base, conf, reason: nm.how + (base.vs === null ? '' : ` · ${Math.round(base.vs * 100)}% of values similar`), stage: 'scored' };
+  }
+
+  // Returns { auto, candidates, aliases }
+  //   auto: chosen mapping pairs (known pairs first, then greedy one-to-one by confidence)
+  //   candidates: top alternatives per compare column
+  //   aliases: compare columns that hold the same key values as the source key (not data columns)
+  function suggestMapping(A, B, key, join, opts) {
+    opts = opts || {};
+    const minConf = opts.minConf || 0.3;
+    const known = opts.known || [];
+    const keyA = A.colsById[key.aId], keyB = B.colsById[key.bId];
+    const pairs = join.pairs;
+    const candidates = {};
+    const all = [];
+
+    // Key aliases first, so their columns are not also used as data columns
+    const aliases = [];
+    for (const b of B.cols) {
+      if (b.id === keyB.id || b.virtual) continue;
+      let eq = 0, comp = 0;
+      for (const p of pairs) {
+        const va = keyA.get(A.rows[p.ia]), vb = b.get(B.rows[p.ib]);
+        if (isBlank(va) || isBlank(vb)) continue;
+        comp++; if (keyNorm(va) === keyNorm(vb)) eq++;
+      }
+      if (comp >= 10 && eq / comp >= 0.98) aliases.push({ bId: b.id, aId: keyA.id, value: eq / comp });
+    }
+    const aliasB = new Set(aliases.map(x => x.bId));
+
+    // A derived column (e.g. First + Last) is dropped when a real column with the same meaning exists
+    const realKeys = (F) => new Set(F.cols.filter(c => !c.virtual).map(c => c.scoreKey));
+    const realA = realKeys(A), realB = realKeys(B);
+    const dupB = new Set(B.cols.filter(c => c.virtual && realB.has(c.scoreKey)).map(c => c.id));
+    const dupA = new Set(A.cols.filter(c => c.virtual && realA.has(c.scoreKey)).map(c => c.id));
+    for (const b of B.cols) {
+      if (b.id === keyB.id || aliasB.has(b.id) || dupB.has(b.id)) continue;
+      candidates[b.id] = [];
+      for (const a of A.cols) {
+        if (a.id === keyA.id || dupA.has(a.id)) continue;
+        const c = scorePair(A, B, a, b, pairs, known);
+        if (c.rejected) continue;
+        candidates[b.id].push(c);
+        all.push(c);
+      }
+      candidates[b.id].sort((x, y) => y.conf - x.conf);
+      candidates[b.id] = candidates[b.id].slice(0, 5);
+    }
+
+    const usedA = new Set(), usedB = new Set(), auto = [];
+    all.filter(c => c.stage === 'known').forEach(c => { usedA.add(c.aId); usedB.add(c.bId); auto.push(c); });
+    const rest = all.filter(c => c.stage !== 'known').sort((x, y) => y.conf - x.conf);
+    for (const c of rest) {
+      if (usedA.has(c.aId) || usedB.has(c.bId)) continue;
+      if (c.conf < minConf) continue;
+      // Do not auto-map when the values barely agree; it stays visible as a suggestion
+      if (c.vs !== null && c.vs < 0.3) continue;
+      usedA.add(c.aId); usedB.add(c.bId);
+      auto.push(c);
+    }
+    // Ambiguity: another source column for the same compare column scored within 0.10
+    auto.forEach(c => {
+      if (c.stage === 'known') return;
+      const close = c.ns >= 1 ? null : (candidates[c.bId] || []).find(x => x.aId !== c.aId && c.conf - x.conf < 0.1 && x.conf >= 0.4);
+      c.alternative = close ? { aId: close.aId, conf: close.conf } : null;
+      c.ambiguous = !!close;
+    });
+    return { auto, candidates, aliases };
+  }
+
+  function confLabel(conf) {
+    if (conf >= 0.7) return 'Auto-matched';
+    if (conf >= 0.4) return 'Review';
+    return 'Low confidence';
+  }
+
+  // Status of a column mapping, driven by how often values agree on matched records
+  function mapStatus(conf, vs, ambiguous, stage) {
+    if (stage === 'known') return 'Known pair';
+    if (conf === null || conf === undefined) return 'Manual';
+    if (ambiguous) return 'Confirm (close alternative)';
+    if (vs === null || vs === undefined) return 'Review';
+    if (vs >= 0.85) return 'Auto-matched';
+    if (vs >= 0.5) return 'Review';
+    return 'Low confidence';
+  }
+
+  // ================= full analysis =================
+  // mapping: [{ aId, bId, conf?, ns?, vs?, ambiguous?, alternative?, stage?, reason? }] ; key: { aId, bId }
+  function analyze(A, B, key, mapping) {
+    const keyA = A.colsById[key.aId], keyB = B.colsById[key.bId];
+    const join = joinOn(A, B, keyA, keyB);
+    const maps = mapping.map(m => {
+      const a = A.colsById[m.aId], b = B.colsById[m.bId];
+      return { aId: a.id, bId: b.id, aLabel: a.label, bLabel: b.label, kind: pairKind(a.kind, b.kind), a, b,
+        conf: m.conf === undefined ? null : m.conf, ns: m.ns, vs: m.vs, ambiguous: !!m.ambiguous,
+        stage: m.stage || (m.conf == null ? 'manual' : 'scored'), reason: m.reason || '', alternative: m.alternative || null };
+    });
+
+    const matchedRows = join.pairs.map(p => {
+      const cells = maps.map(m => {
+        const vs = m.a.get(A.rows[p.ia]);
+        const vd = m.b.get(B.rows[p.ib]);
+        return { status: compareValues(vs, vd, m.kind), src: vs, db: vd };
+      });
+      return { key: p.key, ia: p.ia, ib: p.ib, cells };
+    });
+
+    const mappingStats = maps.map((m, mi) => {
+      const s = { exact: 0, format: 0, mismatch: 0, encoding: 0, blank_source: 0, blank_db: 0, both_blank: 0, placeholder: 0 };
+      matchedRows.forEach(r => {
+        const c = r.cells[mi];
+        s[c.status]++;
+        if (c.status === 'mismatch' && isPlaceholder(c.db)) s.placeholder++;
+      });
+      const comparable = matchedRows.length - s.both_blank;
+      const quality = comparable ? (s.exact + s.format) / comparable : 1;
+      return { ...s, comparable, quality, aLabel: m.aLabel, bLabel: m.bLabel, kind: m.kind, conf: m.conf, vs: m.vs,
+        status: mapStatus(m.conf, m.vs, m.ambiguous, m.stage), reason: m.reason, alternative: m.alternative, aId: m.aId, bId: m.bId };
+    });
+
+    const issues = [];
+    matchedRows.forEach(r => {
+      r.cells.forEach((c, mi) => {
+        if (['mismatch', 'encoding', 'blank_db', 'blank_source'].indexOf(c.status) === -1) return;
+        let issue;
+        if (c.status === 'encoding') issue = 'Garbled text in database';
+        else if (c.status === 'mismatch') issue = isPlaceholder(c.db) ? 'Placeholder in database' : 'Value conflict';
+        else if (c.status === 'blank_db') issue = 'Blank in database';
+        else issue = 'Blank in source';
+        issues.push({ key: r.key, column: maps[mi].bLabel, sourceColumn: maps[mi].aLabel, src: c.src, db: c.db, issue, mi });
+      });
+    });
+
+    const profile = F => F.cols.filter(c => !c.virtual).map(c => {
+      let blanks = 0, garbled = 0;
+      F.rows.forEach(r => {
+        const v = c.get(r);
+        if (isBlank(v)) blanks++;
+        else if (unmojibake(v) !== null) garbled++;
+      });
+      return { label: c.label, blanks, garbled, filled: F.rows.length - blanks, pct: F.rows.length ? (F.rows.length - blanks) / F.rows.length : 0 };
+    });
+    const nullsA = profile(A), nullsB = profile(B);
+
+    const countryCol = F => F.cols.find(c => !c.virtual && /^country(name)?$/.test(c.scoreKey));
+    const breakdown = (F, idxs) => {
+      const c = countryCol(F);
+      if (!c) return null;
+      const counts = new Map();
+      idxs.forEach(i => {
+        const raw = c.get(F.rows[i]);
+        const k = isBlank(raw) ? '(blank)' : String(repaired(raw)).trim();
+        counts.set(k, (counts.get(k) || 0) + 1);
+      });
+      return [...counts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 12).map(([label, count]) => ({ label, count }));
+    };
+    const sourceOnlyByCountry = breakdown(A, join.sourceOnly);
+    const dbOnlyByCountry = breakdown(B, join.dbOnly);
+
+    const activeCol = B.cols.find(c => !c.virtual && c.scoreKey === 'isactive');
+    const dbOnlyActive = activeCol ? join.dbOnly.filter(i => isTruthy(activeCol.get(B.rows[i]))).length : null;
+
+    const totalCells = matchedRows.length * maps.length;
+    const cleanCells = mappingStats.reduce((t, s) => t + s.exact + s.format, 0);
+    // Data error rate: among cells where both sides have a value, the share that really disagree
+    const bothFilled = mappingStats.reduce((t, s) => t + s.exact + s.format + s.mismatch + s.encoding, 0);
+    const dataErrors = mappingStats.reduce((t, s) => t + s.mismatch + s.encoding, 0);
+
+    const summary = {
+      rowsA: A.rows.length, rowsB: B.rows.length,
+      keyLabelA: keyA.label, keyLabelB: keyB.label,
+      matched: join.pairs.length,
+      sourceOnly: join.sourceOnly.length,
+      dbOnly: join.dbOnly.length,
+      dbOnlyActive,
+      dupGroupsA: join.dupA.length, dupGroupsB: join.dupB.length,
+      blankKeyA: join.blankKeyA.length, blankKeyB: join.blankKeyB.length,
+      mappingCount: maps.length,
+      garbled: [...nullsA, ...nullsB].reduce((t, p) => t + p.garbled, 0),
+      totalCells, cleanCells, issueCells: issues.length,
+      agreement: totalCells ? cleanCells / totalCells : 0,
+      dataErrorRate: bothFilled ? dataErrors / bothFilled : 0,
+      ambiguousCount: mappingStats.filter(s => s.status.startsWith('Confirm')).length
+    };
+
+    const insights = buildInsights(summary, mappingStats, sourceOnlyByCountry, dbOnlyByCountry);
+
+    return {
+      summary, insights,
+      key: { aId: keyA.id, bId: keyB.id, aLabel: keyA.label, bLabel: keyB.label },
+      mapping: mappingStats,
+      matchedRows, issues,
+      sourceOnly: join.sourceOnly, dbOnly: join.dbOnly,
+      dupA: join.dupA, dupB: join.dupB,
+      blankKeyA: join.blankKeyA, blankKeyB: join.blankKeyB,
+      nullsA, nullsB,
+      sourceOnlyByCountry, dbOnlyByCountry,
+      maps
+    };
+  }
+
+  function buildInsights(s, stats, srcCountry, dbCountry) {
+    const num = n => Number(n).toLocaleString('en-US');
+    const out = [];
+    if (s.sourceOnly) {
+      let txt = `${num(s.sourceOnly)} source record${s.sourceOnly > 1 ? 's have' : ' has'} no matching database account`;
+      if (srcCountry && srcCountry.length) txt += `, most in ${srcCountry[0].label} (${srcCountry[0].count})`;
+      out.push({ level: 'bad', text: txt + '.' });
+    }
+    if (s.dbOnly) {
+      let txt = `${num(s.dbOnly)} database account${s.dbOnly > 1 ? 's are' : ' is'} not in the source`;
+      if (s.dbOnlyActive !== null) txt += `, ${num(s.dbOnlyActive)} of them still marked active`;
+      out.push({ level: 'warn', text: txt + '.' });
+    }
+    if (s.dupGroupsB) out.push({ level: 'warn', text: `${s.dupGroupsB} key value${s.dupGroupsB > 1 ? 's appear' : ' appears'} more than once in the database. The most complete row was used for each.` });
+    if (s.dupGroupsA) out.push({ level: 'warn', text: `${s.dupGroupsA} key value${s.dupGroupsA > 1 ? 's appear' : ' appears'} more than once in the source.` });
+    stats.forEach(st => {
+      if (st.placeholder > 0) {
+        out.push({ level: 'bad', text: `${st.bLabel}: ${num(st.placeholder)} record${st.placeholder > 1 ? 's show a placeholder value (e.g. "Other") where the source has data.' : ' shows a placeholder value where the source has data.'}` });
+      }
+    });
+    if (s.garbled) out.push({ level: 'bad', text: `${num(s.garbled)} values contain garbled characters (for example "Ã©" for "é" or "â€“" for a dash). This is an encoding problem in the file export.` });
+    const worst = stats.filter(st => st.comparable > 0 && st.status !== 'Known pair').sort((x, y) => x.quality - y.quality)[0];
+    if (worst && worst.quality < 0.95) out.push({ level: 'warn', text: `Lowest agreement: ${worst.bLabel} ↔ ${worst.aLabel} at ${(worst.quality * 100).toFixed(1)}%.` });
+    stats.forEach(st => {
+      if (st.status.startsWith('Confirm')) {
+        out.push({ level: 'warn', text: `Please confirm: ${st.bLabel} was matched to ${st.aLabel}, but another source column scored almost as high. Lock your choice under Known pairs.` });
+      } else if (st.status === 'Review' || st.status === 'Low confidence') {
+        const why = st.vs === null || st.vs === undefined ? 'too few overlapping values to verify it' : `only ${(st.vs * 100).toFixed(0)}% of overlapping values are similar`;
+        out.push({ level: 'warn', text: `Mapping needs review: ${st.bLabel} ↔ ${st.aLabel} (${why}).` });
+      }
+    });
+    const fmt = stats.reduce((t, st) => t + st.format, 0);
+    if (fmt > 0) out.push({ level: 'info', text: `${num(fmt)} values match only after formatting is ignored (spacing, titles, phone prefixes, punctuation).` });
+    const blanks = stats.reduce((t, st) => t + st.blank_db, 0);
+    if (blanks > 0) out.push({ level: 'info', text: `${num(blanks)} values are blank in the database where the source has data.` });
+    return out;
+  }
+
+  // ================= evaluation against a confirmed mapping list =================
+  // truth: [{ bLabel, aLabel }]; aLabel === null means the compare column should NOT be mapped
+  function evaluateMapping(result, truth, extraPairs) {
+    const mapping = result.mapping.concat((extraPairs || []).map(x => ({ bLabel: x.bLabel, aLabel: x.aLabel })));
+    const byB = {};
+    mapping.forEach(m => { byB[m.bLabel] = m; });
+    const rows = [];
+    let correct = 0, wrong = 0, missed = 0;
+    truth.forEach(t => {
+      const m = byB[t.bLabel];
+      const got = m ? m.aLabel : null;
+      const ok = t.aLabel === null ? !m : got === t.aLabel;
+      if (ok) correct++;
+      else if (t.aLabel === null || m) wrong++;
+      else missed++;
+      rows.push({ compare: t.bLabel, expected: t.aLabel, got, ok });
+    });
+    mapping.forEach(m => {
+      if (!truth.some(t => t.bLabel === m.bLabel)) { wrong++; rows.push({ compare: m.bLabel, expected: null, got: m.aLabel, ok: false, extra: true }); }
+    });
+    const total = truth.length + mapping.filter(m => !truth.some(t => t.bLabel === m.bLabel)).length;
+    return { rows, correct, wrong, missed, total, accuracy: total ? correct / total : 0, errorRate: total ? (wrong + missed) / total : 0 };
+  }
+
+  // ================= orchestration =================
+  // opts: { key?: {aId,bId}, mapping?: [...], known?: [{bLabel,aLabel}] }
+  function runReconciliation(fileA, fileB, opts) {
+    opts = opts || {};
+    const A = prepareFile(fileA), B = prepareFile(fileB);
+    const det = detectKeys(A, B);
+    let key = opts.key;
+    if (!key) {
+      if (!det.best) return { error: 'No suitable key column found. Pick a key in the Mapping tab.', A, B };
+      key = det.best;
+    }
+    const join = joinOn(A, B, A.colsById[key.aId], B.colsById[key.bId]);
+    const sug = suggestMapping(A, B, key, join, { known: opts.known });
+    const mapping = opts.mapping || sug.auto.map(c => ({
+      aId: c.aId, bId: c.bId, conf: c.conf, ns: c.ns, vs: c.vs, ambiguous: c.ambiguous,
+      alternative: c.alternative, stage: c.stage, reason: c.reason
+    }));
+    const result = analyze(A, B, key, mapping);
+    return { A, B, key, keyAlternatives: det.alternatives, suggestion: sug, result };
+  }
+
+  const api = {
+    isBlank, normText, normPhone, normName, isPlaceholder, compareValues, rowSimilarity,
+    typeOf, typeHist, typeSim, nameScore,
+    unmojibake, repaired, keyNorm,
+    prepareFile, detectKey, detectKeys, joinOn, suggestMapping, analyze, runReconciliation, evaluateMapping,
+    mapStatus, confLabel, cleanHeader, hkey, detectKind, pairKind
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Reconcile = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+
+<script>
+(function () {
+  'use strict';
+  const R = window.Reconcile;
+  const $ = (s, el) => (el || document).querySelector(s);
+  const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+  const esc = s => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = n => Number(n || 0).toLocaleString();
+  const pct = x => (x * 100).toFixed(1) + '%';
+  // Display text: garbled encodings are repaired for readability (the report still flags them)
+  const display = v => {
+    if (R.isBlank(v)) return '';
+    if (v instanceof Date) return v.toISOString().slice(0, 19).replace('T', ' ');
+    return String(R.repaired(v));
+  };
+
+  const state = { A: null, B: null, P: null, key: null, keyAuto: false, sug: null, mapDraft: {}, mapping: null, res: null, tab: 'overview', charts: [], filt: {},
+    confirmed: [], confirmedText: '', evaluation: null };
+
+  // ---------- toast ----------
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  // ---------- parsing ----------
+  function parseSheet(wb, sheetName) {
+    const ws = wb.Sheets[sheetName];
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true, blankrows: false });
+    let hi = aoa.findIndex(r => r && r.filter(v => !R.isBlank(v)).length >= 2);
+    if (hi < 0) hi = 0;
+    const seen = {};
+    const headers = (aoa[hi] || []).map((h, i) => {
+      let t = R.cleanHeader(h) || ('Column ' + (i + 1));
+      if (seen[t]) { seen[t]++; t = t + ' (' + seen[t] + ')'; } else seen[t] = 1;
+      return t;
+    });
+    const rows = aoa.slice(hi + 1).filter(r => r && r.some(v => !R.isBlank(v))).map(r => {
+      const o = {};
+      headers.forEach((h, i) => { o[h] = r[i] === undefined ? null : r[i]; });
+      return o;
+    });
+    return { headers, rows };
+  }
+
+  function ingest(slot, buf, name, sheetName) {
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const sn = sheetName && wb.Sheets[sheetName] ? sheetName : wb.SheetNames[0];
+    const p = parseSheet(wb, sn);
+    state[slot] = { name, buf, wb, sheetName: sn, sheetNames: wb.SheetNames, headers: p.headers, rows: p.rows };
+    state.P = null; state.res = null;
+    renderSlots();
+  }
+
+  async function loadFile(slot, file) {
+    try {
+      const buf = await file.arrayBuffer();
+      ingest(slot, buf, file.name);
+    } catch (e) {
+      toast('Could not read ' + file.name + ': ' + e.message);
+    }
+  }
+
+  function renderSlots() {
+    ['A', 'B'].forEach(slot => {
+      const s = state[slot];
+      const drop = $('#drop' + slot), info = $('#loaded' + slot);
+      if (!s) { drop.hidden = false; info.hidden = true; info.innerHTML = ''; }
+      else {
+        drop.hidden = true; info.hidden = false;
+        const sheetOpts = s.sheetNames.map(n => `<option ${n === s.sheetName ? 'selected' : ''}>${esc(n)}</option>`).join('');
+        const chips = s.headers.slice(0, 14).map(h => `<span class="tag">${esc(h)}</span>`).join('');
+        const more = s.headers.length > 14 ? `<span class="tag">+${s.headers.length - 14} more</span>` : '';
+        info.innerHTML = `
+          <div class="name">✅ ${esc(s.name)}</div>
+          <div class="bar-row" style="margin-top:6px">
+            <span class="muted small">${num(s.rows.length)} rows · ${num(s.headers.length)} columns</span>
+            ${s.sheetNames.length > 1 ? `<select data-sheet="${slot}">${sheetOpts}</select>` : ''}
+          </div>
+          <div class="chips">${chips}${more}</div>
+          <div style="margin-top:12px"><button class="btn small" data-reset="${slot}">Replace file</button></div>`;
+      }
+    });
+    $('#analyzeBtn').disabled = !(state.A && state.B);
+  }
+
+  // ---------- analysis orchestration ----------
+  // Resolve confirmed lines (labels) to column ids. Unknown labels are reported back.
+  function resolveConfirmed() {
+    const { A, B } = state.P;
+    const find = (F, label) => F.cols.find(c => c.label.toLowerCase() === label.toLowerCase());
+    const out = [], bad = [];
+    state.confirmed.forEach(x => {
+      const b = find(B, x.bLabel);
+      const a = x.aLabel === null ? null : find(A, x.aLabel);
+      if (!b || (x.aLabel !== null && !a)) bad.push(x.bLabel + ' = ' + (x.aLabel === null ? '(none)' : x.aLabel));
+      else out.push({ bLabel: b.label, aLabel: a ? a.label : null, bId: b.id, aId: a ? a.id : null });
+    });
+    return { out, bad };
+  }
+
+  function refreshSuggestion() {
+    const { A, B } = state.P;
+    if (!state.key) { state.sug = null; state.mapDraft = {}; return; }
+    const join = R.joinOn(A, B, A.colsById[state.key.aId], B.colsById[state.key.bId]);
+    const conf = resolveConfirmed().out;
+    const known = conf.filter(x => x.aId).map(x => ({ bLabel: x.bLabel, aLabel: x.aLabel }));
+    state.sug = R.suggestMapping(A, B, state.key, join, { known });
+    state.autoSug = known.length ? R.suggestMapping(A, B, state.key, join) : state.sug;
+    const draft = {};
+    B.cols.forEach(c => { if (c.id !== state.key.bId) draft[c.id] = null; });
+    state.sug.auto.forEach(c => { draft[c.bId] = c.aId; });
+    conf.forEach(x => { if (!x.aId) draft[x.bId] = null; });   // confirmed "(none)"
+    state.mapDraft = draft;
+  }
+
+  function findCand(bId, aId) {
+    if (!state.sug) return null;
+    const a = state.sug.auto.find(c => c.bId === bId && c.aId === aId);
+    if (a) return a;
+    const list = state.sug.candidates[bId] || [];
+    return list.find(c => c.aId === aId) || null;
+  }
+
+  function runWithDraft() {
+    const { A, B } = state.P;
+    if (!state.key) { state.res = null; return; }
+    const mapping = [];
+    Object.keys(state.mapDraft).forEach(bId => {
+      const aId = state.mapDraft[bId];
+      if (!aId) return;
+      const c = findCand(bId, aId);
+      mapping.push({ aId, bId, conf: c ? c.conf : null, ns: c ? c.ns : null, vs: c ? c.vs : null, comp: c ? c.comp : null,
+        stage: c ? c.stage : 'manual', ambiguous: c ? !!c.ambiguous : false, alternative: c ? c.alternative : null, reason: c ? (c.reason || '') : 'chosen by you' });
+    });
+    state.mapping = mapping;
+    state.res = R.analyze(A, B, state.key, mapping);
+    const conf = resolveConfirmed().out;
+    if (conf.length && state.sug && state.autoSug) {
+      const truth = conf.map(x => ({ bLabel: x.bLabel, aLabel: x.aLabel }));
+      const aliasPairs = state.sug.aliases.map(x => ({ bLabel: B.colsById[x.bId].label, aLabel: A.colsById[x.aId].label }));
+      // Grade the AUTOMATIC result (before your locks) against your confirmed list
+      const autoPairs = state.autoSug.auto.map(c => ({ bLabel: B.colsById[c.bId].label, aLabel: A.colsById[c.aId].label }));
+      const autoRes = R.analyze(A, B, state.key, state.autoSug.auto.map(c => ({ aId: c.aId, bId: c.bId, conf: c.conf, vs: c.vs, stage: c.stage, ambiguous: c.ambiguous, alternative: c.alternative, reason: c.reason })));
+      const automatic = R.evaluateMapping({ mapping: autoRes.mapping.map(m => ({ bLabel: m.bLabel, aLabel: m.aLabel })) }, truth, aliasPairs);
+      const locked = R.evaluateMapping(state.res, truth, aliasPairs);
+      state.evaluation = { automatic, locked, rows: automatic.rows, accuracy: automatic.accuracy, errorRate: automatic.errorRate, correct: automatic.correct, wrong: automatic.wrong, missed: automatic.missed, total: automatic.total, autoPairs };
+    } else state.evaluation = null;
+  }
+
+  function startAnalysis() {
+    state.P = { A: R.prepareFile(state.A), B: R.prepareFile(state.B) };
+    const auto = R.detectKey(state.P.A, state.P.B);
+    state.key = auto ? { aId: auto.aId, bId: auto.bId } : null;
+    state.keyAuto = !!auto;
+    refreshSuggestion();
+    runWithDraft();
+    $('#upload').hidden = true;
+    $('#dash').hidden = false;
+    $('#pairPill').innerHTML = `${esc(state.A.name)} <span class="muted">↔</span> ${esc(state.B.name)}`;
+    state.tab = state.res ? 'overview' : 'mapping';
+    switchTab(state.tab);
+    if (!state.res) toast('No matching key was detected. Choose the key columns on the Column mapping tab.');
+    else toast('Analysis complete');
+  }
+
+  // ---------- tabs ----------
+  function destroyCharts() { state.charts.forEach(c => c.destroy()); state.charts = []; }
+
+  function switchTab(tab) {
+    state.tab = tab;
+    $$('#tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    destroyCharts();
+    const r = {
+      overview: renderOverview, mapping: renderMapping, missing: renderMissing,
+      mismatch: renderMismatch, records: renderRecords, quality: renderQuality, download: renderDownload
+    }[tab];
+    r();
+  }
+
+  $('#tabs').addEventListener('click', e => {
+    const t = e.target.closest('.tab'); if (t) switchTab(t.dataset.tab);
+  });
+
+  function needResult() {
+    if (state.res) return false;
+    $('#panel').innerHTML = `<div class="card empty">No analysis yet. Choose the key columns in <b>Column mapping</b> and press <b>Apply mapping</b>.</div>`;
+    return true;
+  }
+
+  // ---------- OVERVIEW ----------
+  function kpi(label, value, sub, cls) {
+    return `<div class="kpi ${cls || ''}"><div class="l">${label}</div><div class="v">${value}</div><div class="s">${sub || ''}</div></div>`;
+  }
+
+  function evaluationCard() {
+    const ev = state.evaluation;
+    const a = ev.automatic, l = ev.locked;
+    const rows = a.rows.map(x => {
+      const locked = l.rows.find(y => y.compare === x.compare);
+      return `<tr><td>${esc(x.compare)}${x.extra ? ' <span class="chip c-manual">not confirmed</span>' : ''}</td>
+        <td>${esc(x.expected === null ? '(none)' : x.expected)}</td>
+        <td>${esc(x.got === null ? '(unmapped)' : x.got)}</td>
+        <td><span class="chip ${x.ok ? 'c-auto' : 'c-mismatch'}">${x.ok ? 'Correct' : 'Wrong'}</span></td>
+        <td>${esc(locked && locked.got !== null ? locked.got : '(unmapped)')}</td></tr>`;
+    }).join('');
+    const dataErr = state.res.summary.dataErrorRate;
+    return `<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        ${kpi('Automatic accuracy', pct(a.accuracy), `${a.correct} of ${a.total} confirmed pairs found by the studio`, a.accuracy >= 0.9 ? 'ok' : 'warn')}
+        ${kpi('Automatic error rate', pct(a.errorRate), `${a.wrong} wrong · ${a.missed} missed`, a.errorRate > 0 ? 'bad' : 'ok')}
+        ${kpi('Locked result accuracy', pct(l.accuracy), 'after your confirmations are applied', 'info')}
+        ${kpi('Data error rate', pct(dataErr), 'filled cells that really disagree, after mapping', dataErr > 0.1 ? 'warn' : 'ok')}
+      </div>
+      <div class="card"><h3>Automatic result checked against your confirmed mappings</h3>
+        <div class="table-wrap" style="max-height:340px"><table><thead><tr><th>Compare column</th><th>Confirmed</th><th>Automatic</th><th>Result</th><th>Locked (used)</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>`;
+  }
+
+  function renderOverview() {
+    if (needResult()) return;
+    const r = state.res, s = r.summary;
+    const conflicts = r.issues.filter(i => i.issue === 'Value conflict' || i.issue === 'Placeholder in database').length;
+    const matchedPct = s.rowsA ? s.matched / s.rowsA : 0;
+    $('#panel').innerHTML = `
+      <div class="kpis">
+        ${kpi('Source records', num(s.rowsA), 'in source file', '')}
+        ${kpi('Compare records', num(s.rowsB), 'in compare file', '')}
+        ${kpi('Matched', num(s.matched), pct(matchedPct) + ' of source', 'ok')}
+        ${kpi('Missing in compare', num(s.sourceOnly), 'in source, not in compare', s.sourceOnly ? 'bad' : 'ok')}
+        ${kpi('Extra in compare', num(s.dbOnly), s.dbOnlyActive !== null ? num(s.dbOnlyActive) + ' still active' : 'not in source', s.dbOnly ? 'warn' : 'ok')}
+        ${kpi('Value agreement', pct(s.agreement), num(s.cleanCells) + ' of ' + num(s.totalCells) + ' cells', s.agreement > 0.9 ? 'ok' : 'warn')}
+        ${kpi('Value conflicts', num(conflicts), num(s.garbled || 0) + ' garbled text values', conflicts ? 'bad' : 'ok')}
+        ${kpi('Mapped columns', num(s.mappingCount), 'compare ↔ source', 'info')}
+      </div>
+      ${state.evaluation ? evaluationCard() : ''}
+      <div class="grid2">
+        <div class="card"><h3>Record coverage</h3><div class="chart-box"><canvas id="cDonut"></canvas></div></div>
+        <div class="card"><h3>Agreement by mapped column</h3><div class="chart-box" style="height:${Math.max(240, 60 + r.mapping.length * 46)}px"><canvas id="cBars"></canvas></div></div>
+      </div>
+      <div class="card"><h3>Key insights</h3>
+        ${r.insights.length ? r.insights.map(i => `<div class="insight"><span class="dot d-${i.level}"></span><span>${esc(i.text)}</span></div>`).join('') : '<div class="muted">No issues found.</div>'}
+      </div>`;
+
+    const donut = new Chart($('#cDonut'), {
+      type: 'doughnut',
+      data: { labels: ['Matched', 'Only in source', 'Only in compare'], datasets: [{ data: [s.matched, s.sourceOnly, s.dbOnly], backgroundColor: ['#10b981', '#ef4444', '#f59e0b'], borderWidth: 0 }] },
+      options: { cutout: '64%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+    const bars = new Chart($('#cBars'), {
+      type: 'bar',
+      data: {
+        labels: r.mapping.map(m => m.bLabel),
+        datasets: [
+          { label: 'Exact', data: r.mapping.map(m => m.exact), backgroundColor: '#10b981' },
+          { label: 'Format only', data: r.mapping.map(m => m.format), backgroundColor: '#3b82f6' },
+          { label: 'Conflict', data: r.mapping.map(m => m.mismatch), backgroundColor: '#ef4444' },
+          { label: 'Garbled text', data: r.mapping.map(m => m.encoding), backgroundColor: '#f97316' },
+          { label: 'Blank in compare', data: r.mapping.map(m => m.blank_db), backgroundColor: '#f59e0b' },
+          { label: 'Blank in source', data: r.mapping.map(m => m.blank_source), backgroundColor: '#a78bfa' }
+        ]
+      },
+      options: {
+        indexAxis: 'y', maintainAspectRatio: false,
+        scales: { x: { stacked: true }, y: { stacked: true } },
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+    state.charts.push(donut, bars);
+  }
+
+  // ---------- MAPPING ----------
+  function renderMapping() {
+    if (!state.P) return;
+    const { A, B } = state.P;
+    const keyAOpts = A.cols.filter(c => !c.virtual).map(c => `<option value="${esc(c.id)}" ${state.key && state.key.aId === c.id ? 'selected' : ''}>${esc(c.label)}</option>`).join('');
+    const keyBOpts = B.cols.filter(c => !c.virtual).map(c => `<option value="${esc(c.id)}" ${state.key && state.key.bId === c.id ? 'selected' : ''}>${esc(c.label)}</option>`).join('');
+    const placeholder = state.key ? '' : '<option value="" selected>— choose —</option>';
+
+    const keyNote = state.key
+      ? (state.keyAuto ? '<span class="chip c-auto">Auto-detected</span>' : '<span class="chip c-manual">Manual</span>')
+      : '<span class="chip c-low">Not detected</span>';
+
+    let rows = '';
+    const usedA = new Set();
+    if (state.key) {
+      B.cols.forEach(bc => {
+        if (bc.id === state.key.bId) return;
+        const cands = (state.sug && state.sug.candidates[bc.id]) || [];
+        const candIds = cands.map(c => c.aId);
+        const ordered = [...cands.map(c => A.colsById[c.aId]), ...A.cols.filter(a => !candIds.includes(a.id))].filter(a => a.id !== state.key.aId);
+        const current = state.mapDraft[bc.id] || '';
+        if (current) usedA.add(current);
+        const opts = [`<option value="">— not mapped —</option>`].concat(ordered.map(a => {
+          const cand = cands.find(c => c.aId === a.id);
+          const label = a.label + (cand ? `   (${Math.round(cand.conf * 100)}%)` : '');
+          return `<option value="${esc(a.id)}" ${a.id === current ? 'selected' : ''}>${esc(label)}</option>`;
+        })).join('');
+        const c = current ? findCand(bc.id, current) : null;
+        let status;
+        if (!current) status = '<span class="chip c-none">Not mapped</span>';
+        else if (!c) status = '<span class="chip c-manual">Manual</span>';
+        else {
+          const l = R.mapStatus(c.conf, c.vs);
+          const cls = { 'Auto-matched': 'auto', 'Known pair': 'auto', 'Review': 'review', 'Confirm (close alternative)': 'review', 'Low confidence': 'low', 'Manual': 'manual' }[l] || 'review';
+          status = `<span class="chip c-${cls}">${l}</span>`;
+        }
+        const conf = c ? c.conf : 0;
+        const st = state.res ? state.res.mapping.find(m => m.bId === bc.id) : null;
+        const q = st && st.comparable ? pct(st.quality) : '—';
+        rows += `<tr>
+          <td><b>${esc(bc.label)}</b>${bc.virtual ? ' <span class="chip c-manual">virtual</span>' : ''}</td>
+          <td><select class="wide" data-map="${esc(bc.id)}">${opts}</select></td>
+          <td><div class="confbar"><div class="bar" style="flex:1"><i style="width:${Math.round(conf * 100)}%"></i></div><span>${c ? Math.round(conf * 100) + '%' : ''}</span></div></td>
+          <td>${status}</td>
+          <td>${q}</td>
+        </tr>`;
+      });
+    }
+    const unmapped = A.cols.filter(a => !usedA.has(a.id) && a.id !== (state.key && state.key.aId));
+
+    $('#panel').innerHTML = `
+      <div class="card">
+        <h3>1 · Matching key</h3>
+        <div class="muted small" style="margin-bottom:12px">The key is the column that identifies the same person or record in both files. It must be unique in each file.</div>
+        <div class="toolbar">
+          <div><div class="small muted">Source key</div><select id="keyA" class="wide">${placeholder}${keyAOpts}</select></div>
+          <div><div class="small muted">Compare key</div><select id="keyB" class="wide">${placeholder}${keyBOpts}</select></div>
+          <div style="align-self:flex-end">${keyNote}</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>2 · Confirmed mappings <span class="muted small" style="font-weight:400">(optional, locks your choices and grades the result)</span></h3>
+        <div class="muted small" style="margin-bottom:8px">One per line: <code>Compare column = Source column</code>, or <code>Compare column = (none)</code> if it should stay unmapped. Example: <code>Designation = Assignment Name</code></div>
+        <textarea id="confirmedText" rows="5" style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid var(--line);border-radius:10px">${esc(state.confirmedText)}</textarea>
+        <div class="toolbar" style="margin:10px 0 0">
+          <button class="btn primary" id="applyConfirmed" ${state.key ? '' : 'disabled'}>Apply confirmed mappings</button>
+          <button class="btn" id="saveProfile" ${state.key ? '' : 'disabled'}>⬇ Save mapping profile</button>
+          <label class="btn" style="cursor:pointer">⬆ Load profile<input type="file" id="loadProfile" accept=".json,.txt" hidden></label>
+          <div class="grow"></div>
+          ${state.key && state.sug && state.sug.aliases.length ? `<span class="chip c-manual">Key alias: ${esc(state.sug.aliases.map(x => B.colsById[x.bId].label).join(', '))} (same values as the key)</span>` : ''}
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar" style="justify-content:space-between">
+          <div><h3 style="margin:0">2 · Column mapping</h3><div class="muted small">Pick the compare column that corresponds to each source column. Percentages show how strongly the values agree on matched records.</div></div>
+          <div style="display:flex;gap:8px"><button class="btn" id="resetMap">Reset to auto</button><button class="btn primary" id="applyMap" ${state.key ? '' : 'disabled'}>Apply mapping &amp; analyze</button></div>
+        </div>
+        ${state.key ? `<div class="table-wrap"><table>
+          <thead><tr><th>Compare column</th><th>Maps to source column</th><th>Confidence</th><th>Status</th><th>Agreement</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>` : '<div class="empty">Choose both key columns to see the mapping.</div>'}
+        ${state.key && unmapped.length ? `<div style="margin-top:14px"><div class="small muted" style="margin-bottom:6px">Source columns not mapped (${unmapped.length})</div><div class="chips">${unmapped.map(a => `<span class="tag">${esc(a.label)}</span>`).join('')}</div></div>` : ''}
+      </div>`;
+
+    $('#keyA') && $('#keyA').addEventListener('change', e => setKey('aId', e.target.value));
+    $('#keyB') && $('#keyB').addEventListener('change', e => setKey('bId', e.target.value));
+    $$('select[data-map]').forEach(sel => sel.addEventListener('change', e => {
+      state.mapDraft[sel.dataset.map] = e.target.value || null;
+      renderMapping();
+    }));
+    $('#applyMap') && $('#applyMap').addEventListener('click', () => {
+      runWithDraft();
+      if (state.res) { toast('Mapping applied'); switchTab('overview'); }
+    });
+    $('#resetMap') && $('#resetMap').addEventListener('click', () => { refreshSuggestion(); renderMapping(); toast('Reset to auto-detected mapping'); });
+    $('#applyConfirmed') && $('#applyConfirmed').addEventListener('click', () => applyConfirmedText($('#confirmedText').value));
+    $('#saveProfile') && $('#saveProfile').addEventListener('click', saveProfile);
+    $('#loadProfile') && $('#loadProfile').addEventListener('change', async e => {
+      const f = e.target.files[0]; if (!f) return;
+      const txt = await f.text();
+      let text = txt;
+      try { const j = JSON.parse(txt); text = (j.confirmed || []).map(x => `${x.compare} = ${x.source === null ? '(none)' : x.source}`).join('\n'); } catch (err) { /* plain text */ }
+      state.confirmedText = text; renderMapping(); applyConfirmedText(text);
+    });
+  }
+
+  function parseConfirmed(text) {
+    return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+      const i = l.indexOf('=');
+      if (i < 0) return null;
+      const bLabel = l.slice(0, i).trim();
+      let aLabel = l.slice(i + 1).trim();
+      if (/^\(?none\)?$/i.test(aLabel) || aLabel === '') aLabel = null;
+      return { bLabel, aLabel };
+    }).filter(Boolean);
+  }
+
+  function applyConfirmedText(text) {
+    state.confirmedText = text;
+    state.confirmed = parseConfirmed(text);
+    refreshSuggestion();
+    const { bad } = resolveConfirmed();
+    runWithDraft();
+    renderMapping();
+    if (bad.length) toast('Not found in the files: ' + bad.join('; '));
+    else toast(state.evaluation ? 'Confirmed mappings applied' : 'Confirmed mappings applied');
+    if (state.res && state.evaluation) switchTab('overview');
+  }
+
+  function saveProfile() {
+    const { A, B } = state.P;
+    const profile = {
+      version: 1, created: new Date().toISOString(),
+      key: { source: A.colsById[state.key.aId].label, compare: B.colsById[state.key.bId].label },
+      confirmed: state.confirmed.map(x => ({ compare: x.bLabel, source: x.aLabel }))
+    };
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'mapping_profile.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast('Profile saved');
+  }
+
+  function setKey(which, id) {
+    if (!id) return;
+    state.key = Object.assign({ aId: null, bId: null }, state.key, { [which]: id });
+    if (!state.key.aId || !state.key.bId) { state.sug = null; state.mapDraft = {}; state.res = null; renderMapping(); return; }
+    state.keyAuto = false;
+    refreshSuggestion();
+    renderMapping();
+  }
+
+  // ---------- MISSING & EXTRA ----------
+  function recordTable(F, idxs, search, limit) {
+    const cols = F.cols.filter(c => !c.virtual).slice(0, 14);
+    const q = (search || '').toLowerCase();
+    const filtered = idxs.filter(i => !q || cols.some(c => display(c.get(F.rows[i])).toLowerCase().includes(q)));
+    const shown = filtered.slice(0, limit || 300);
+    if (!filtered.length) return `<div class="empty">No records${q ? ' match your search' : ''}.</div>`;
+    const head = cols.map(c => `<th>${esc(c.label)}</th>`).join('');
+    const body = shown.map(i => `<tr>${cols.map(c => `<td title="${esc(display(c.get(F.rows[i])))}">${esc(display(c.get(F.rows[i])))}</td>`).join('')}</tr>`).join('');
+    return `<div class="small muted" style="margin-bottom:8px">Showing ${num(shown.length)} of ${num(filtered.length)}${F.cols.filter(c => !c.virtual).length > 14 ? ' · first 14 columns shown, full list in the report' : ''}</div>
+      <div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  function renderMissing() {
+    if (needResult()) return;
+    const r = state.res, { A, B } = state.P;
+    const q = state.filt.missSearch || '';
+    $('#panel').innerHTML = `
+      <div class="toolbar"><input type="search" id="missSearch" placeholder="Search any visible value…" value="${esc(q)}" class="grow"></div>
+      <div class="grid2" style="grid-template-columns:1fr 1fr">
+        <div class="card"><h3>In source, not in compare <span class="chip c-mismatch">${num(r.sourceOnly.length)}</span></h3>
+          ${r.sourceOnlyByCountry ? `<div class="chart-box" style="height:240px;margin-bottom:12px"><canvas id="cSrcCountry"></canvas></div>` : ''}
+          ${recordTable(A, r.sourceOnly, q)}</div>
+        <div class="card"><h3>In compare, not in source <span class="chip c-review">${num(r.dbOnly.length)}</span></h3>
+          ${r.dbOnlyByCountry ? `<div class="chart-box" style="height:240px;margin-bottom:12px"><canvas id="cDbCountry"></canvas></div>` : ''}
+          ${recordTable(B, r.dbOnly, q)}</div>
+      </div>`;
+    $('#missSearch').addEventListener('input', e => { state.filt.missSearch = e.target.value; renderMissing(); $('#missSearch').focus(); });
+    if (r.sourceOnlyByCountry && $('#cSrcCountry')) state.charts.push(countryChart('#cSrcCountry', r.sourceOnlyByCountry, '#ef4444'));
+    if (r.dbOnlyByCountry && $('#cDbCountry')) state.charts.push(countryChart('#cDbCountry', r.dbOnlyByCountry, '#f59e0b'));
+  }
+
+  function countryChart(sel, data, color) {
+    return new Chart($(sel), {
+      type: 'bar',
+      data: { labels: data.map(d => d.label), datasets: [{ data: data.map(d => d.count), backgroundColor: color, borderRadius: 6 }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // ---------- MISMATCHES ----------
+  const ISSUE_CLASS = { 'Value conflict': 'c-mismatch', 'Placeholder in database': 'c-placeholder', 'Garbled text in database': 'c-encoding', 'Blank in database': 'c-blank', 'Blank in source': 'c-blank' };
+
+  function renderMismatch() {
+    if (needResult()) return;
+    const r = state.res;
+    const f = state.filt;
+    const colOpts = ['<option value="">All columns</option>'].concat(r.mapping.map(m => `<option value="${esc(m.bLabel)}" ${f.mCol === m.bLabel ? 'selected' : ''}>${esc(m.bLabel)} ↔ ${esc(m.aLabel)}</option>`)).join('');
+    const issueOpts = ['All issues', 'Value conflict', 'Placeholder in database', 'Garbled text in database', 'Blank in database', 'Blank in source'].map(x => `<option value="${x === 'All issues' ? '' : x}" ${f.mIssue === (x === 'All issues' ? '' : x) ? 'selected' : ''}>${x}</option>`).join('');
+    const q = (f.mSearch || '').toLowerCase();
+    const list = r.issues.filter(i => (!f.mCol || i.column === f.mCol) && (!f.mIssue || i.issue === f.mIssue) && (!q || String(i.key).includes(q)));
+    const shown = list.slice(0, 500);
+    const body = shown.map(i => `<tr>
+      <td title="${esc(i.key)}">${esc(i.key)}</td>
+      <td>${esc(i.column)}</td>
+      <td>${esc(i.sourceColumn)}</td>
+      <td title="${esc(display(i.src))}">${esc(display(i.src)) || '<span class="muted">blank</span>'}</td>
+      <td title="${esc(display(i.db))}">${esc(display(i.db)) || '<span class="muted">blank</span>'}</td>
+      <td class="issue-cell"><span class="chip ${ISSUE_CLASS[i.issue]}">${esc(i.issue)}</span></td></tr>`).join('');
+    $('#panel').innerHTML = `
+      <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+        ${kpi('Total issues', num(r.issues.length), 'across all mapped columns', 'bad')}
+        ${kpi('Value conflicts', num(r.issues.filter(i => i.issue === 'Value conflict').length), 'different values', 'bad')}
+        ${kpi('Placeholders', num(r.issues.filter(i => i.issue === 'Placeholder in database').length), 'e.g. "Other"', 'warn')}
+        ${kpi('Garbled text', num(r.issues.filter(i => i.issue.startsWith('Garbled')).length), 'encoding damage', 'warn')}
+        ${kpi('Blank values', num(r.issues.filter(i => i.issue.startsWith('Blank')).length), 'one side is empty', 'info')}
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <select id="mCol">${colOpts}</select>
+          <select id="mIssue">${issueOpts}</select>
+          <input type="search" id="mSearch" placeholder="Search key (email)…" value="${esc(f.mSearch || '')}">
+          <div class="grow"></div><span class="muted small">${num(list.length)} rows${list.length > 500 ? ' · showing first 500, all rows in the Excel report' : ''}</span>
+        </div>
+        ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Key</th><th>Compare column</th><th>Source column</th><th>Source value</th><th>Compare value</th><th>Issue</th></tr></thead><tbody>${body}</tbody></table></div>` : '<div class="empty">No issues for this filter.</div>'}
+      </div>`;
+    $('#mCol').addEventListener('change', e => { f.mCol = e.target.value; renderMismatch(); });
+    $('#mIssue').addEventListener('change', e => { f.mIssue = e.target.value; renderMismatch(); });
+    $('#mSearch').addEventListener('input', e => { f.mSearch = e.target.value; renderMismatch(); $('#mSearch').focus(); });
+  }
+
+  // ---------- RECORD COMPARISON ----------
+  function renderRecords() {
+    if (needResult()) return;
+    const r = state.res, f = state.filt;
+    const q = (f.rSearch || '').toLowerCase();
+    const mode = f.rMode || 'all';
+    const modes = { all: 'All matched records', issues: 'Any issue', conflict: 'Value conflicts', format: 'Formatting differences only', blank: 'Blank values' };
+    const pred = row => {
+      const st = row.cells.map(c => c.status);
+      if (mode === 'issues') return st.some(s => ['mismatch', 'encoding', 'blank_db', 'blank_source'].includes(s));
+      if (mode === 'conflict') return st.includes('mismatch');
+      if (mode === 'format') return st.includes('format') && !st.includes('mismatch');
+      if (mode === 'blank') return st.some(s => s === 'blank_db' || s === 'blank_source');
+      return true;
+    };
+    const list = r.matchedRows.filter(row => pred(row) && (!q || row.key.includes(q)));
+    const shown = list.slice(0, 300);
+    const head = r.maps.map(m => `<th>${esc(m.bLabel)}<div class="small" style="text-transform:none;letter-spacing:0;color:#94a3b8">↔ ${esc(m.aLabel)}</div></th>`).join('');
+    const body = shown.map(row => `<tr><td title="${esc(row.key)}"><b>${esc(row.key)}</b></td>${row.cells.map(c => {
+      const same = R.normText(c.src) === R.normText(c.db);
+      const content = c.status === 'both_blank' ? '<span class="muted">—</span>'
+        : same ? esc(display(c.db))
+        : `${esc(display(c.src)) || '<i class="muted">blank</i>'}<small>→</small>${esc(display(c.db)) || '<i class="muted">blank</i>'}`;
+      return `<td class="cell cell-${c.status}" title="Source: ${esc(display(c.src))}&#10;Compare: ${esc(display(c.db))}&#10;${c.status.replace('_', ' ')}">${content}</td>`;
+    }).join('')}</tr>`).join('');
+    $('#panel').innerHTML = `
+      <div class="card">
+        <div class="toolbar">
+          <select id="rMode">${Object.keys(modes).map(k => `<option value="${k}" ${k === mode ? 'selected' : ''}>${modes[k]}</option>`).join('')}</select>
+          <input type="search" id="rSearch" placeholder="Search key (email)…" value="${esc(f.rSearch || '')}">
+          <div class="grow"></div>
+          <span class="chip c-exact">exact</span><span class="chip c-format">format only</span><span class="chip c-mismatch">conflict</span><span class="chip c-encoding">garbled</span><span class="chip c-blank">blank</span>
+        </div>
+        <div class="small muted" style="margin-bottom:8px">${num(list.length)} records · showing ${num(shown.length)}${list.length > 300 ? ' · full list in the Excel report' : ''} · cells show <b>source → compare</b> when they differ</div>
+        ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Key</th>${head}</tr></thead><tbody>${body}</tbody></table></div>` : '<div class="empty">No records match.</div>'}
+      </div>`;
+    $('#rMode').addEventListener('change', e => { f.rMode = e.target.value; renderRecords(); });
+    $('#rSearch').addEventListener('input', e => { f.rSearch = e.target.value; renderRecords(); $('#rSearch').focus(); });
+  }
+
+  // ---------- DATA QUALITY ----------
+  function profileTable(title, prof) {
+    const rows = prof.map(p => `<tr><td>${esc(p.label)}</td><td style="width:40%"><div class="bar"><i style="width:${Math.round(p.pct * 100)}%"></i></div></td><td>${pct(p.pct)}</td><td>${num(p.blanks)}</td><td>${p.garbled ? `<span class="chip c-encoding">${num(p.garbled)}</span>` : '<span class="muted">0</span>'}</td></tr>`).join('');
+    return `<div class="card"><h3>${title}</h3><div class="table-wrap" style="max-height:460px"><table><thead><tr><th>Column</th><th>Filled</th><th>Fill %</th><th>Blank</th><th>Garbled</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  function dupTable(list, side) {
+    if (!list.length) return `<div class="empty">No duplicate keys in ${side}.</div>`;
+    return `<div class="table-wrap" style="max-height:300px"><table><thead><tr><th>Key</th><th>Occurrences</th><th>Data rows</th></tr></thead><tbody>${
+      list.slice(0, 200).map(d => `<tr><td>${esc(d.key)}</td><td>${d.rows.length}</td><td>${d.rows.map(i => i + 1).join(', ')}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderQuality() {
+    if (needResult()) return;
+    const r = state.res;
+    $('#panel').innerHTML = `
+      <div class="grid2">
+        ${profileTable('Source file · completeness', r.nullsA)}
+        ${profileTable('Compare file · completeness', r.nullsB)}
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Duplicate keys · compare file <span class="chip c-review">${num(r.dupB.length)}</span></h3>${dupTable(r.dupB, 'the compare file')}</div>
+        <div class="card"><h3>Duplicate keys · source file <span class="chip c-review">${num(r.dupA.length)}</span></h3>${dupTable(r.dupA, 'the source file')}</div>
+      </div>`;
+  }
+
+  // ---------- DOWNLOAD / REPORT ----------
+  function renderDownload() {
+    if (needResult()) return;
+    const r = state.res, s = r.summary;
+    const sheets = [
+      ['Summary', 'Headline numbers, key used, and automatic insights'],
+      ['Column Mapping', `${num(r.mapping.length)} mapped column pairs with confidence and agreement`],
+      ['Mismatches', `${num(r.issues.length)} issue rows: conflicts, placeholders, blanks`],
+      ['Matched Records', `${num(r.matchedRows.length)} records, each mapped column side by side with status colour`],
+      ['Missing in Database', `${num(r.sourceOnly.length)} source records with no compare match`],
+      ['Extra in Database', `${num(r.dbOnly.length)} compare records not present in the source`],
+      ['Duplicates', `${num(r.dupA.length + r.dupB.length)} duplicate key groups`],
+      ['Data Quality', 'Completeness per column for both files']
+    ];
+    $('#panel').innerHTML = `
+      <div class="grid2">
+        <div class="card">
+          <h3>Detailed Excel report</h3>
+          <div class="muted" style="margin-bottom:14px">A colour-coded workbook with one tab per analysis, frozen headers, and filters on every table.</div>
+          <ul class="sheet-list" style="padding-left:18px">${sheets.map(x => `<li><b>${x[0]}</b><div class="muted small">${x[1]}</div></li>`).join('')}</ul>
+          <button class="btn primary" id="dlReport" style="margin-top:10px">⬇ Download report (.xlsx)</button>
+        </div>
+        <div class="card">
+          <h3>Report at a glance</h3>
+          <div class="kpis" style="grid-template-columns:1fr 1fr">
+            ${kpi('Matched', num(s.matched), 'records', 'ok')}
+            ${kpi('Missing in compare', num(s.sourceOnly), 'records', 'bad')}
+            ${kpi('Extra in compare', num(s.dbOnly), 'records', 'warn')}
+            ${kpi('Agreement', pct(s.agreement), 'of compared cells', 'info')}
+          </div>
+          <div class="muted small">Key: ${esc(s.keyLabelA)} ↔ ${esc(s.keyLabelB)}</div>
+        </div>
+      </div>`;
+    $('#dlReport').addEventListener('click', downloadReport);
+  }
+
+  function styleHeader(row) {
+    row.eachCell(c => {
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      c.alignment = { vertical: 'middle', wrapText: true };
+      c.border = { bottom: { style: 'thin', color: { argb: 'FF3730A3' } } };
+    });
+    row.height = 26;
+  }
+
+  const ARGB = { exact: 'FFDCFCE7', format: 'FFDBEAFE', mismatch: 'FFFEE2E2', encoding: 'FFFFEDD5', blank_db: 'FFFEF3C7', blank_source: 'FFEDE9FE', placeholder: 'FFFCE7F3', ok: 'FFDCFCE7', bad: 'FFFEE2E2', warn: 'FFFEF3C7', info: 'FFDBEAFE', cell: 'FFF8FAFC' };
+
+  function addSheet(wb, name, headers, rows, styleFn, widthHint) {
+    const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
+    styleHeader(ws.addRow(headers));
+    rows.forEach((vals, ri) => {
+      const row = ws.addRow(vals);
+      if (styleFn) {
+        row.eachCell((c, ci) => {
+          const fill = styleFn(vals, ci - 1);
+          if (fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+        });
+      }
+    });
+    ws.columns = headers.map((h, i) => {
+      let w = String(h).length;
+      rows.slice(0, 60).forEach(r => { const l = String(display(r[i]) || '').length; if (l > w) w = l; });
+      return { width: Math.min(Math.max(w + 3, 12), widthHint || 42) };
+    });
+    if (rows.length) ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
+    return ws;
+  }
+
+  function buildWorkbook() {
+    const r = state.res, s = r.summary, { A, B } = state.P;
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Data Reconciliation Studio';
+    wb.created = new Date();
+
+    // Summary
+    const sum = wb.addWorksheet('Summary', { views: [{ showGridLines: false }] });
+    sum.columns = [{ width: 36 }, { width: 22 }, { width: 60 }];
+    sum.mergeCells('A1:C1');
+    const t = sum.getCell('A1');
+    t.value = 'Data Reconciliation Report';
+    t.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+    t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+    t.alignment = { vertical: 'middle', indent: 1 };
+    sum.getRow(1).height = 40;
+    const meta = [
+      ['Generated', new Date().toLocaleString()],
+      ['Source file', state.A.name],
+      ['Compare file', state.B.name],
+      ['Matching key', `${s.keyLabelA}  ↔  ${s.keyLabelB}`]
+    ];
+    meta.forEach((m, i) => {
+      sum.getCell(`A${i + 3}`).value = m[0]; sum.getCell(`A${i + 3}`).font = { bold: true, color: { argb: 'FF475569' } };
+      sum.getCell(`B${i + 3}`).value = m[1];
+    });
+    let rr = meta.length + 4;
+    styleHeader(sum.getRow(rr)); sum.getRow(rr).getCell(1).value = 'Headline metric'; sum.getRow(rr).getCell(2).value = 'Value'; sum.getRow(rr).getCell(3).value = 'What it means';
+    const kpiRows = [
+      ['Source records', s.rowsA, 'Rows in the source file'],
+      ['Compare records', s.rowsB, 'Rows in the compare file'],
+      ['Matched', s.matched, 'Source records found in the compare file by key'],
+      ['Missing in compare', s.sourceOnly, 'Source records with no compare match'],
+      ['Extra in compare', s.dbOnly, 'Compare records not present in the source'],
+      ['Extra and still active', s.dbOnlyActive === null ? 'n/a' : s.dbOnlyActive, 'Extra compare records flagged active'],
+      ['Duplicate key groups (compare)', s.dupGroupsB, 'Same key appears more than once'],
+      ['Value agreement', s.agreement, 'Share of compared cells that agree'],
+      ['Value conflicts', r.issues.filter(i => i.issue === 'Value conflict').length, 'Matched records where values differ'],
+      ['Placeholder values', r.issues.filter(i => i.issue === 'Placeholder in database').length, 'Compare value is a placeholder such as "Other"'],
+      ['Garbled text values', s.garbled || 0, 'Encoding damage such as "Ã©" for "é" (fix the export encoding)'],
+      ['Data error rate', s.dataErrorRate, 'Share of filled cells that really disagree (mismatch or garbled)'],
+      ...(state.evaluation ? [
+        ['Automatic mapping accuracy', state.evaluation.automatic.accuracy, 'Automatic result vs your confirmed mappings'],
+        ['Automatic mapping error rate', state.evaluation.automatic.errorRate, 'Wrong or missed pairs ÷ confirmed pairs']] : [])
+    ];
+    kpiRows.forEach(k => {
+      rr++;
+      const row = sum.getRow(rr);
+      row.getCell(1).value = k[0]; row.getCell(2).value = k[1]; row.getCell(3).value = k[2];
+      if (k[0] === 'Value agreement') row.getCell(2).numFmt = '0.0%';
+      row.getCell(2).alignment = { horizontal: 'right' };
+    });
+    rr += 2;
+    styleHeader(sum.getRow(rr)); sum.getRow(rr).getCell(1).value = 'Insight'; sum.getRow(rr).getCell(2).value = 'Level';
+    sum.getRow(rr).getCell(3).value = 'Detail';
+    r.insights.forEach(i => {
+      rr++;
+      const row = sum.getRow(rr);
+      row.getCell(1).value = i.text;
+      row.getCell(2).value = i.level.toUpperCase();
+      row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ARGB[i.level === 'bad' ? 'bad' : i.level === 'warn' ? 'warn' : 'info'] } };
+      row.getCell(1).alignment = { wrapText: true, vertical: 'top' };
+      row.height = 32;
+    });
+
+    // Column mapping
+    addSheet(wb, 'Column Mapping',
+      ['Compare column', 'Source column', 'Mapping type', 'Confidence', 'Confidence status', 'Records compared', 'Exact', 'Format only', 'Conflicts', 'Garbled text', 'Placeholder in compare', 'Blank in compare', 'Blank in source', 'Agreement %'],
+      r.mapping.map(m => [
+        m.bLabel, m.aLabel,
+        m.aId.startsWith('__') ? 'Virtual (First + Last)' : (m.bId === state.key.bId ? 'Key' : 'Direct'),
+        m.conf === null ? null : m.conf,
+        m.status,
+        m.comparable, m.exact, m.format, m.mismatch, m.encoding, m.placeholder, m.blank_db, m.blank_source, m.quality
+      ]),
+      (vals, ci) => {
+        if (ci === 4) return (vals[4] === 'Auto-matched' || vals[4] === 'Known pair') ? ARGB.ok : vals[4] === 'Manual' ? 'FFEDE9FE' : (vals[4] === 'Review' || vals[4].startsWith('Confirm')) ? ARGB.warn : ARGB.bad;
+        if (ci === 13) return vals[13] >= 0.95 ? ARGB.ok : vals[13] >= 0.8 ? ARGB.warn : ARGB.bad;
+        if (ci === 9 && vals[9] > 0) return ARGB.encoding;
+        return null;
+      }, 30);
+    {
+      const ws = wb.getWorksheet('Column Mapping');
+      ws.eachRow((row, n) => { if (n > 1) { row.getCell(4).numFmt = '0%'; row.getCell(14).numFmt = '0.0%'; } });
+    }
+
+    // Mapping check against confirmed mappings (only when the user confirmed some)
+    if (state.evaluation) {
+      const ev = state.evaluation;
+      const lockedBy = {}; ev.locked.rows.forEach(x => { lockedBy[x.compare] = x.got; });
+      addSheet(wb, 'Mapping Check',
+        ['Compare column', 'Confirmed source column', 'Automatic result', 'Automatic correct?', 'Locked (used in report)'],
+        ev.automatic.rows.map(x => [x.compare, x.expected === null ? '(none)' : x.expected, x.got === null ? '(unmapped)' : x.got, x.ok ? 'Correct' : 'Wrong', lockedBy[x.compare] === null || lockedBy[x.compare] === undefined ? '(unmapped)' : lockedBy[x.compare]]),
+        (vals, ci) => ci === 3 ? (vals[3] === 'Correct' ? ARGB.ok : ARGB.mismatch) : null, 36);
+    }
+
+    // Mismatches
+    addSheet(wb, 'Mismatches',
+      ['Key', 'Compare column', 'Source column', 'Source value', 'Compare value', 'Issue'],
+      r.issues.map(i => [i.key, i.column, i.sourceColumn, display(i.src), display(i.db), i.issue]),
+      (vals, ci) => ci === 5 ? (vals[5] === 'Value conflict' ? ARGB.mismatch : vals[5] === 'Placeholder in database' ? ARGB.placeholder : vals[5] === 'Garbled text in database' ? ARGB.encoding : ARGB.blank_db) : null,
+      40);
+
+    // Matched records
+    const mhead = ['Key'];
+    r.maps.forEach(m => mhead.push(`${m.bLabel} (compare)`, `${m.aLabel} (source)`, 'Status'));
+    const mrows = r.matchedRows.map(row => {
+      const vals = [row.key];
+      row.cells.forEach(c => vals.push(display(c.db), display(c.src), c.status.replace('_', ' ')));
+      return vals;
+    });
+    const mstyle = (vals, ci) => {
+      if (ci === 0 || (ci - 1) % 3 !== 2) return null;
+      const st = vals[ci].replace(' ', '_');
+      return ARGB[st] || null;
+    };
+    addSheet(wb, 'Matched Records', mhead, mrows, mstyle, 34);
+
+    // Missing in database
+    const A_real = A.cols.filter(c => !c.virtual);
+    addSheet(wb, 'Missing in Database', A_real.map(c => c.label),
+      r.sourceOnly.map(i => A_real.map(c => display(c.get(A.rows[i])))),
+      null, 34);
+
+    // Extra in database
+    const B_real = B.cols.filter(c => !c.virtual);
+    addSheet(wb, 'Extra in Database', B_real.map(c => c.label),
+      r.dbOnly.map(i => B_real.map(c => display(c.get(B.rows[i])))),
+      null, 34);
+
+    // Duplicates
+    const dupRows = [];
+    r.dupB.forEach(d => dupRows.push(['Compare', d.key, d.rows.length, d.rows.map(i => i + 1).join(', ')]));
+    r.dupA.forEach(d => dupRows.push(['Source', d.key, d.rows.length, d.rows.map(i => i + 1).join(', ')]));
+    addSheet(wb, 'Duplicates', ['File', 'Key', 'Occurrences', 'Data rows'], dupRows, null, 40);
+
+    // Data quality
+    const qRows = [];
+    r.nullsA.forEach(p => qRows.push(['Source', p.label, p.filled, p.blanks, p.pct, p.garbled]));
+    r.nullsB.forEach(p => qRows.push(['Compare', p.label, p.filled, p.blanks, p.pct, p.garbled]));
+    addSheet(wb, 'Data Quality', ['File', 'Column', 'Filled', 'Blank', 'Fill %', 'Garbled text'], qRows,
+      (vals, ci) => ci === 4 ? (vals[4] >= 0.95 ? ARGB.ok : vals[4] >= 0.6 ? ARGB.warn : ARGB.bad) : (ci === 5 && vals[5] > 0 ? ARGB.encoding : null), 34);
+    {
+      const ws = wb.getWorksheet('Data Quality');
+      ws.eachRow((row, n) => { if (n > 1) row.getCell(5).numFmt = '0.0%'; });
+    }
+    return wb;
+  }
+
+  async function buildReportBuffer() {
+    const wb = buildWorkbook();
+    return wb.xlsx.writeBuffer();
+  }
+
+  async function downloadReport() {
+    try {
+      const buf = await buildReportBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url; a.download = 'Reconciliation_Report_' + stamp + '.xlsx';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      toast('Report downloaded');
+    } catch (e) {
+      toast('Report failed: ' + e.message);
+      console.error(e);
+    }
+  }
+
+  // ---------- wiring ----------
+  ['A', 'B'].forEach(slot => {
+    const drop = $('#drop' + slot), input = $('#file' + slot);
+    drop.addEventListener('click', () => input.click());
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.classList.remove('over');
+      if (e.dataTransfer.files[0]) loadFile(slot, e.dataTransfer.files[0]);
+    });
+    input.addEventListener('change', e => { if (e.target.files[0]) loadFile(slot, e.target.files[0]); });
+  });
+
+  document.addEventListener('click', e => {
+    const reset = e.target.closest('[data-reset]');
+    if (reset) { const slot = reset.dataset.reset; state[slot] = null; $('#file' + slot).value = ''; renderSlots(); }
+  });
+  document.addEventListener('change', e => {
+    const sel = e.target.closest('[data-sheet]');
+    if (sel) {
+      const slot = sel.dataset.sheet;
+      ingest(slot, state[slot].buf, state[slot].name, sel.value);
+    }
+  });
+
+  $('#analyzeBtn').addEventListener('click', startAnalysis);
+  $('#changeFiles').addEventListener('click', () => {
+    destroyCharts();
+    $('#dash').hidden = true; $('#upload').hidden = false;
+  });
+
+  // Public hooks (used for automated testing and for the console)
+  window.Studio = {
+    _state: state,
+    ingest, startAnalysis, switchTab, buildReportBuffer, buildWorkbook,
+    setSlot: (slot, buf, name) => ingest(slot, buf, name)
+  };
+
+  renderSlots();
+})();
+</script>
+</body>
+</html>

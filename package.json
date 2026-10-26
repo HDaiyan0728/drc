@@ -1,0 +1,10 @@
+{
+  "name": "data-reconciliation-studio",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Browser-based validation and reconciliation for two Excel or CSV files",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}
