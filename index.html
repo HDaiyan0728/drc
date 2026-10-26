@@ -79,15 +79,6 @@
   .toast.show{opacity:1;transform:none}
   .confbar{display:flex;align-items:center;gap:8px}
   .confbar span{font-size:12px;color:var(--muted);width:38px}
-  .landing{margin-bottom:18px}.landing-head{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:stretch}.landing-copy{padding:28px}.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--brand);margin-bottom:8px}.landing h2{font-size:28px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}.landing-copy p{font-size:15px;line-height:1.65;margin:0;color:var(--muted)}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.step{padding:12px;background:#f8fafc;border:1px solid var(--line);border-radius:12px}.step b{display:block;margin-bottom:4px}.step span{font-size:12px;color:var(--muted)}.trust{background:linear-gradient(145deg,#eef2ff,#f5f3ff);padding:24px;display:flex;flex-direction:column;justify-content:center}.trust-item{display:flex;gap:10px;margin:9px 0}.trust-icon{width:30px;height:30px;border-radius:9px;background:#fff;display:grid;place-items:center;flex:none}.section-intro{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.attention{padding:14px 16px;border:1px solid #fed7aa;background:#fff7ed;border-radius:12px;margin-bottom:16px}.row-affected td{background:#fff7ed!important}.row-affected td:first-child{box-shadow:inset 4px 0 #f97316}.row-missing td{background:#fef2f2!important}.row-extra td{background:#fffbeb!important}.record-badge{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:99px;background:#ffedd5;color:#9a3412;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.04em}
-  @media(max-width:860px){.landing-head{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.landing-copy{padding:20px}.landing h2{font-size:23px}}
-  html,body{max-width:100%;overflow-x:hidden}
-  main,#dash,#panel,.card,.grid2,.grid3,.kpis{min-width:0}
-  .card,.insight,.kpi,.loaded,.pill,code{overflow-wrap:anywhere;word-break:break-word}
-  .table-wrap{width:100%;max-width:100%;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-  .table-wrap table{min-width:max-content}td{overflow-wrap:anywhere;word-break:break-word}td[title]{max-width:280px}
-  textarea,canvas{max-width:100%}textarea{resize:vertical}
-  @media(max-width:720px){.hero{padding:26px 16px 62px}.hero h1{font-size:23px}main{padding:0 12px;margin-top:-38px}.card{padding:15px}.kpis,.kpis[style]{grid-template-columns:1fr!important}.grid2,.grid2[style],.grid3{grid-template-columns:minmax(0,1fr)!important}.toolbar,.bar-row{align-items:stretch}.toolbar>*{max-width:100%}.toolbar .grow{flex-basis:100%}select,select.wide,input[type=search],input[type=text],.btn{width:100%;min-width:0;max-width:100%}.tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}.tab{flex:0 0 auto}.chart-box{height:260px}.toast{left:12px;right:12px;bottom:12px;max-width:none}}
 </style>
 </head>
 <body>
@@ -105,21 +96,6 @@
 <main>
   <!-- ============ STEP 1: UPLOAD ============ -->
   <section id="upload">
-    <div class="landing">
-      <div class="landing-head">
-        <div class="card landing-copy">
-          <div class="eyebrow">Private browser-based validation</div>
-          <h2>Compare two spreadsheets without losing sight of what matters.</h2>
-          <p>Upload a source file and a compare file. The studio identifies matching records, explains differences, and turns the result into a clear action list.</p>
-          <div class="steps"><div class="step"><b>1. Upload</b><span>Excel or CSV, including multi-sheet workbooks.</span></div><div class="step"><b>2. Review</b><span>Confirm the key and suggested column mappings.</span></div><div class="step"><b>3. Act</b><span>Focus on affected rows and export Excel or HTML.</span></div></div>
-        </div>
-        <div class="card trust">
-          <div class="trust-item"><span class="trust-icon">🔒</span><div><b>Your files stay in your browser</b><div class="muted small">No application server upload is required.</div></div></div>
-          <div class="trust-item"><span class="trust-icon">🎯</span><div><b>Attention-first results</b><div class="muted small">Affected rows are highlighted so clean data does not distract you.</div></div></div>
-          <div class="trust-item"><span class="trust-icon">📄</span><div><b>Two report formats</b><div class="muted small">Detailed Excel workbook and portable HTML report.</div></div></div>
-        </div>
-      </div>
-    </div>
     <div class="grid2">
       <div class="card slot" data-slot="A">
         <h3>① Source file <span class="muted small">(e.g. client extract)</span></h3>
@@ -160,7 +136,7 @@
       <div class="tab" data-tab="mismatch">Mismatches</div>
       <div class="tab" data-tab="records">Record comparison</div>
       <div class="tab" data-tab="quality">Data quality</div>
-      <div class="tab" data-tab="download">Download</div>
+      <div class="tab" data-tab="download">Download report</div>
     </nav>
     <div id="panel"></div>
   </section>
@@ -1089,7 +1065,6 @@
     const conflicts = r.issues.filter(i => i.issue === 'Value conflict' || i.issue === 'Placeholder in database').length;
     const matchedPct = s.rowsA ? s.matched / s.rowsA : 0;
     $('#panel').innerHTML = `
-      <div class="attention"><b>Start here:</b> ${num(s.sourceOnly)} missing records, ${num(s.dbOnly)} extra records, and ${num(r.issues.length)} affected cells need attention. Clean rows remain available in Record comparison but are visually de-emphasized.</div>
       <div class="kpis">
         ${kpi('Source records', num(s.rowsA), 'in source file', '')}
         ${kpi('Compare records', num(s.rowsB), 'in compare file', '')}
@@ -1288,14 +1263,14 @@
   }
 
   // ---------- MISSING & EXTRA ----------
-  function recordTable(F, idxs, search, limit, rowClass) {
+  function recordTable(F, idxs, search, limit) {
     const cols = F.cols.filter(c => !c.virtual).slice(0, 14);
     const q = (search || '').toLowerCase();
     const filtered = idxs.filter(i => !q || cols.some(c => display(c.get(F.rows[i])).toLowerCase().includes(q)));
     const shown = filtered.slice(0, limit || 300);
     if (!filtered.length) return `<div class="empty">No records${q ? ' match your search' : ''}.</div>`;
     const head = cols.map(c => `<th>${esc(c.label)}</th>`).join('');
-    const body = shown.map(i => `<tr class="${rowClass || ''}">${cols.map(c => `<td title="${esc(display(c.get(F.rows[i])))}">${esc(display(c.get(F.rows[i])))}</td>`).join('')}</tr>`).join('');
+    const body = shown.map(i => `<tr>${cols.map(c => `<td title="${esc(display(c.get(F.rows[i])))}">${esc(display(c.get(F.rows[i])))}</td>`).join('')}</tr>`).join('');
     return `<div class="small muted" style="margin-bottom:8px">Showing ${num(shown.length)} of ${num(filtered.length)}${F.cols.filter(c => !c.virtual).length > 14 ? ' · first 14 columns shown, full list in the report' : ''}</div>
       <div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
@@ -1306,13 +1281,13 @@
     const q = state.filt.missSearch || '';
     $('#panel').innerHTML = `
       <div class="toolbar"><input type="search" id="missSearch" placeholder="Search any visible value…" value="${esc(q)}" class="grow"></div>
-      <div>
-        <div class="card"><div class="section-intro"><div><h3>In source, not in compare <span class="chip c-mismatch">${num(r.sourceOnly.length)}</span></h3><div class="muted small">These records need to be created or investigated in the compare system.</div></div></div>
+      <div class="grid2" style="grid-template-columns:1fr 1fr">
+        <div class="card"><h3>In source, not in compare <span class="chip c-mismatch">${num(r.sourceOnly.length)}</span></h3>
           ${r.sourceOnlyByCountry ? `<div class="chart-box" style="height:240px;margin-bottom:12px"><canvas id="cSrcCountry"></canvas></div>` : ''}
-          ${recordTable(A, r.sourceOnly, q, 200, 'row-missing')}</div>
-        <div class="card"><div class="section-intro"><div><h3>In compare, not in source <span class="chip c-review">${num(r.dbOnly.length)}</span></h3><div class="muted small">Review whether these accounts should remain active or be removed.</div></div></div>
+          ${recordTable(A, r.sourceOnly, q)}</div>
+        <div class="card"><h3>In compare, not in source <span class="chip c-review">${num(r.dbOnly.length)}</span></h3>
           ${r.dbOnlyByCountry ? `<div class="chart-box" style="height:240px;margin-bottom:12px"><canvas id="cDbCountry"></canvas></div>` : ''}
-          ${recordTable(B, r.dbOnly, q, 200, 'row-extra')}</div>
+          ${recordTable(B, r.dbOnly, q)}</div>
       </div>`;
     $('#missSearch').addEventListener('input', e => { state.filt.missSearch = e.target.value; renderMissing(); $('#missSearch').focus(); });
     if (r.sourceOnlyByCountry && $('#cSrcCountry')) state.charts.push(countryChart('#cSrcCountry', r.sourceOnlyByCountry, '#ef4444'));
@@ -1339,7 +1314,7 @@
     const q = (f.mSearch || '').toLowerCase();
     const list = r.issues.filter(i => (!f.mCol || i.column === f.mCol) && (!f.mIssue || i.issue === f.mIssue) && (!q || String(i.key).includes(q)));
     const shown = list.slice(0, 500);
-    const body = shown.map(i => `<tr class="row-affected">
+    const body = shown.map(i => `<tr>
       <td title="${esc(i.key)}">${esc(i.key)}</td>
       <td>${esc(i.column)}</td>
       <td>${esc(i.sourceColumn)}</td>
@@ -1386,13 +1361,13 @@
     const list = r.matchedRows.filter(row => pred(row) && (!q || row.key.includes(q)));
     const shown = list.slice(0, 300);
     const head = r.maps.map(m => `<th>${esc(m.bLabel)}<div class="small" style="text-transform:none;letter-spacing:0;color:#94a3b8">↔ ${esc(m.aLabel)}</div></th>`).join('');
-    const body = shown.map(row => { const affected = row.cells.some(c => ['mismatch','encoding','blank_db','blank_source'].includes(c.status)); return `<tr class="${affected ? 'row-affected' : ''}"><td title="${esc(row.key)}"><b>${esc(row.key)}</b>${affected ? '<span class="record-badge">Affected</span>' : ''}</td>${row.cells.map(c => {
+    const body = shown.map(row => `<tr><td title="${esc(row.key)}"><b>${esc(row.key)}</b></td>${row.cells.map(c => {
       const same = R.normText(c.src) === R.normText(c.db);
       const content = c.status === 'both_blank' ? '<span class="muted">—</span>'
         : same ? esc(display(c.db))
         : `${esc(display(c.src)) || '<i class="muted">blank</i>'}<small>→</small>${esc(display(c.db)) || '<i class="muted">blank</i>'}`;
       return `<td class="cell cell-${c.status}" title="Source: ${esc(display(c.src))}&#10;Compare: ${esc(display(c.db))}&#10;${c.status.replace('_', ' ')}">${content}</td>`;
-    }).join('')}</tr>`; }).join('');
+    }).join('')}</tr>`).join('');
     $('#panel').innerHTML = `
       <div class="card">
         <div class="toolbar">
@@ -1451,10 +1426,10 @@
     $('#panel').innerHTML = `
       <div class="grid2">
         <div class="card">
-          <h3>Download reports</h3>
-          <div class="muted" style="margin-bottom:14px">Download a colour-coded Excel workbook or a portable HTML report that opens in any modern browser.</div>
+          <h3>Detailed Excel report</h3>
+          <div class="muted" style="margin-bottom:14px">A colour-coded workbook with one tab per analysis, frozen headers, and filters on every table.</div>
           <ul class="sheet-list" style="padding-left:18px">${sheets.map(x => `<li><b>${x[0]}</b><div class="muted small">${x[1]}</div></li>`).join('')}</ul>
-          <div class="toolbar" style="margin-top:10px"><button class="btn primary" id="dlReport">⬇ Excel report (.xlsx)</button><button class="btn" id="dlHtml">⬇ HTML report (.html)</button></div>
+          <button class="btn primary" id="dlReport" style="margin-top:10px">⬇ Excel report (.xlsx)</button> <button class="btn" id="dlHtml" style="margin-top:10px">⬇ HTML report (.html)</button>
         </div>
         <div class="card">
           <h3>Report at a glance</h3>
@@ -1468,6 +1443,7 @@
         </div>
       </div>`;
     $('#dlReport').addEventListener('click', downloadReport);
+    $('#dlHtml').addEventListener('click', downloadHtmlReport);
   }
 
   function styleHeader(row) {
@@ -1657,6 +1633,17 @@
     return wb.xlsx.writeBuffer();
   }
 
+  function safeFilePart(name){return String(name||'file').replace(/\.[^.]+$/,'').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').slice(0,55)||'file';}
+  function combinedReportName(ext){return `${safeFilePart(state.A.name)}_vs_${safeFilePart(state.B.name)}_Reconciliation_${new Date().toISOString().slice(0,10)}.${ext}`;}
+  function downloadHtmlReport(){
+    try{
+      const s=state.res.summary,r=state.res;
+      const rows=r.issues.map(i=>`<tr><td>${esc(i.key)}</td><td>${esc(i.column)}</td><td>${esc(i.sourceColumn)}</td><td>${esc(display(i.src))}</td><td>${esc(display(i.db))}</td><td>${esc(i.issue)}</td></tr>`).join('');
+      const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Reconciliation Report</title><style>body{font:14px Arial;margin:24px;color:#172033}h1{margin-bottom:4px}.meta{color:#64748b}.k{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.k div{padding:14px;border:1px solid #ddd;border-radius:10px;min-width:130px}.k b{font-size:22px;display:block}.wrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:800px}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left;overflow-wrap:anywhere}th{background:#eef2ff;position:sticky;top:0}</style></head><body><h1>Data Reconciliation Report</h1><div class="meta">${esc(state.A.name)} vs ${esc(state.B.name)}<br>Key: ${esc(s.keyLabelA)} vs ${esc(s.keyLabelB)}</div><div class="k"><div><b>${num(s.matched)}</b>Matched</div><div><b>${num(s.sourceOnly)}</b>Missing</div><div><b>${num(s.dbOnly)}</b>Extra</div><div><b>${pct(s.agreement)}</b>Agreement</div></div><h2>Affected cells</h2><div class="wrap"><table><thead><tr><th>Key</th><th>Compare column</th><th>Source column</th><th>Source value</th><th>Compare value</th><th>Issue</th></tr></thead><tbody>${rows}</tbody></table></div></body></html>`;
+      const a=document.createElement('a');a.download=combinedReportName('html');a.href='data:text/html;charset=utf-8,'+encodeURIComponent(html);document.body.appendChild(a);a.click();a.remove();toast('HTML report downloaded');
+    }catch(e){toast('HTML report failed: '+e.message);console.error(e);}
+  }
+
   async function downloadReport() {
     try {
       const buf = await buildReportBuffer();
@@ -1664,7 +1651,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const stamp = new Date().toISOString().slice(0, 10);
-      a.href = url; a.download = 'Reconciliation_Report_' + stamp + '.xlsx';
+      a.href = url; a.download = combinedReportName('xlsx');
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       toast('Report downloaded');
@@ -1672,31 +1659,6 @@
       toast('Report failed: ' + e.message);
       console.error(e);
     }
-  }
-
-  function reportTable(headers, rows){return `<div class="report-table"><table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(display(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
-  function buildHtmlReport(){
-    const r=state.res,s=r.summary;
-    const mappings=r.mapping.map(m=>[m.bLabel,m.aLabel,m.status,m.conf==null?'Manual':pct(m.conf),pct(m.quality),m.exact,m.format,m.mismatch,m.blank_db,m.blank_source]);
-    const issues=r.issues.map(i=>[i.key,i.column,i.sourceColumn,display(i.src),display(i.db),i.issue]);
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Data Reconciliation Report</title><style>*{box-sizing:border-box}body{margin:0;background:#f8fafc;color:#0f172a;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}header{padding:28px max(18px,calc((100vw - 1180px)/2));background:linear-gradient(135deg,#1e1b4b,#4f46e5,#7c3aed);color:white}main{max-width:1180px;margin:auto;padding:24px 18px}.meta{opacity:.9;overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric,.section{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px}.metric b{font-size:24px;display:block}.metric span,.note{color:#64748b}.report-table{max-width:100%;overflow:auto;border:1px solid #e2e8f0;border-radius:10px}table{border-collapse:collapse;min-width:max-content;width:100%}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e2e8f0;max-width:320px;overflow-wrap:anywhere;word-break:break-word}th{position:sticky;top:0;background:#eef2ff;color:#3730a3}@media(max-width:720px){.metrics{grid-template-columns:1fr 1fr}}@media(max-width:450px){.metrics{grid-template-columns:1fr}}</style></head><body><header><h1>Data Reconciliation Report</h1><div class="meta">${esc(state.A.name)} ↔ ${esc(state.B.name)}<br>Generated ${esc(new Date().toLocaleString())}<br>Key: ${esc(s.keyLabelA)} ↔ ${esc(s.keyLabelB)}</div></header><main><section class="metrics"><div class="metric"><b>${num(s.matched)}</b><span>Matched records</span></div><div class="metric"><b>${num(s.sourceOnly)}</b><span>Missing in compare</span></div><div class="metric"><b>${num(s.dbOnly)}</b><span>Extra in compare</span></div><div class="metric"><b>${pct(s.agreement)}</b><span>Cell agreement</span></div></section><section class="section"><h2>Key insights</h2>${r.insights.length?reportTable(['Level','Insight'],r.insights.map(i=>[i.level.toUpperCase(),i.text])):'<p class="note">No issues found.</p>'}</section><section class="section"><h2>Column mapping</h2>${reportTable(['Compare column','Source column','Status','Confidence','Agreement','Exact','Format only','Conflicts','Blank in compare','Blank in source'],mappings)}</section><section class="section"><h2>Mismatches and completeness issues</h2><p class="note">${num(issues.length)} issue rows.</p>${issues.length?reportTable(['Key','Compare column','Source column','Source value','Compare value','Issue'],issues):'<p class="note">No mismatches.</p>'}</section><section class="section"><h2>Record coverage</h2>${reportTable(['Metric','Count'],[['Source records',s.rowsA],['Compare records',s.rowsB],['Matched',s.matched],['Missing in compare',s.sourceOnly],['Extra in compare',s.dbOnly],['Duplicate key groups in source',s.dupGroupsA],['Duplicate key groups in compare',s.dupGroupsB]])}</section></main></body></html>`;
-  }
-  async function downloadHtmlReport(){
-    const btn = document.querySelector('#dlHtml');
-    try {
-      if (btn) { btn.disabled = true; btn.textContent = 'Preparing HTML…'; }
-      const html = buildHtmlReport();
-      if (!html || html.length < 500) throw new Error('The report content was not generated.');
-      const blob = new Blob(['\ufeff', html], {type:'text/html;charset=utf-8'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none'; a.href = url;
-      a.download = 'Reconciliation_Report_' + new Date().toISOString().slice(0,10) + '.html';
-      document.body.appendChild(a); a.click();
-      await new Promise(resolve => setTimeout(resolve, 250));
-      a.remove(); URL.revokeObjectURL(url); toast('HTML report downloaded');
-    } catch(e) { toast('HTML report failed: ' + e.message); console.error(e); }
-    finally { if (btn) { btn.disabled = false; btn.textContent = '⬇ HTML report (.html)'; } }
   }
 
   // ---------- wiring ----------
@@ -1734,7 +1696,7 @@
   window.Studio = {
     _state: state,
     ingest, startAnalysis, switchTab, buildReportBuffer, buildWorkbook,
-    buildHtmlReport, setSlot: (slot, buf, name) => ingest(slot, buf, name)
+    setSlot: (slot, buf, name) => ingest(slot, buf, name)
   };
 
   renderSlots();
